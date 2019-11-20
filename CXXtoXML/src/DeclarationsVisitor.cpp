@@ -55,7 +55,7 @@ DeclarationsVisitor::PreVisitStmt(Stmt *S) {
 
   newChild("clangStmt");
   newProp("class", S->getStmtClassName());
-  setLocation(S->getLocStart());
+  setLocation(S->getBeginLoc());
 
   if (auto FS = dyn_cast<ForStmt>(S)) {
     const std::vector<std::tuple<const char *, Stmt *>> children = {
@@ -193,7 +193,7 @@ DeclarationsVisitor::PreVisitStmt(Stmt *S) {
     newProp("token", spelling.str().c_str());
   }
 
-  if (auto SL = dyn_cast<StringLiteral>(S)) {
+  if (auto SL = dyn_cast<clang::StringLiteral>(S)) {
     StringRef Data = SL->getString();
     std::string literalAsString;
     raw_string_ostream OS(literalAsString);
@@ -231,8 +231,8 @@ DeclarationsVisitor::PreVisitStmt(Stmt *S) {
      * and `SemanticForm`. Do not traverse `SyntacticForm`,
      * otherwise it emits the elements twice.
      */
-    for (Stmt::child_range range = ILE->children(); range; ++range) {
-      TraverseStmt(*range);
+    for (auto &range :  ILE->children()) {
+      TraverseStmt(range);
     }
     return false;
   }
@@ -270,7 +270,15 @@ DeclarationsVisitor::PreVisitStmt(Stmt *S) {
       return true;
 
       // case UETT_OpenMPRequiredSimdAlign:
+    case UETT_OpenMPRequiredSimdAlign:
       //  NStmt("UnaryExprOrTypeTraitExpr(UETT_OpenMPRequiredSimdAlign");
+      abort();
+      return true;
+    case UETT_PreferredAlignOf:
+      abort();
+      return true;      
+    default:
+      abort();
     }
   }
 

@@ -14,6 +14,7 @@
 using namespace clang;
 using namespace llvm;
 
+
 static cl::opt<bool> OptTraceTypeTable("trace-typeTable",
     cl::desc("emit traces on <typeTable>"),
     cl::cat(CXX2XMLCategory));
@@ -73,7 +74,8 @@ std::string
 TypeTableInfo::registerPointerType(QualType T) {
   std::string name = mapFromQualTypeToName[T];
   assert(name.empty());
-
+  using clang::Type;
+  
   raw_string_ostream OS(name);
   switch (T->getTypeClass()) {
   case Type::Pointer:
@@ -87,13 +89,21 @@ TypeTableInfo::registerPointerType(QualType T) {
 
 std::string
 TypeTableInfo::registerFunctionType(QualType T) {
+  using clang::Type;
+
   assert(T->getTypeClass() == Type::FunctionProto
       || T->getTypeClass() == Type::FunctionNoProto);
+
   std::string name = mapFromQualTypeToName[T];
+  std::cerr<<T.getAsString()<<std::endl;
+  if(!name.empty()){
+    std::cerr<<name<<std::endl;
+  }
   assert(name.empty());
 
   raw_string_ostream OS(name);
   OS << "Function" << seqForFunctionType++;
+  std::cerr<<OS.str()<<std::endl;
   return mapFromQualTypeToName[T] = OS.str();
 }
 
@@ -101,6 +111,7 @@ std::string
 TypeTableInfo::registerArrayType(QualType T) {
   std::string name = mapFromQualTypeToName[T];
   assert(name.empty());
+  using clang::Type;
 
   raw_string_ostream OS(name);
   switch (T->getTypeClass()) {
@@ -119,6 +130,8 @@ TypeTableInfo::registerArrayType(QualType T) {
 
 std::string
 TypeTableInfo::registerRecordType(QualType T) {
+  using clang::Type;
+
   assert(T->getTypeClass() == Type::Record);
   std::string name = mapFromQualTypeToName[T];
   assert(name.empty());
@@ -139,6 +152,8 @@ TypeTableInfo::registerRecordType(QualType T) {
 
 std::string
 TypeTableInfo::registerEnumType(QualType T) {
+  using clang::Type;
+
   assert(T->getTypeClass() == Type::Enum);
   std::string name = mapFromQualTypeToName[T];
   assert(name.empty());
@@ -150,6 +165,7 @@ TypeTableInfo::registerEnumType(QualType T) {
 
 std::string
 TypeTableInfo::registerTemplateTypeParmType(QualType T) {
+  using clang::Type;
   assert(T->getTypeClass() == Type::TemplateTypeParm);
   std::string name = mapFromQualTypeToName[T];
   assert(name.empty());
@@ -161,6 +177,8 @@ TypeTableInfo::registerTemplateTypeParmType(QualType T) {
 
 std::string
 TypeTableInfo::registerInjectedClassNameType(QualType T) {
+  using clang::Type;
+
   assert(T->getTypeClass() == Type::InjectedClassName);
   std::string name = mapFromQualTypeToName[T];
   assert(name.empty());
@@ -172,6 +190,8 @@ TypeTableInfo::registerInjectedClassNameType(QualType T) {
 
 std::string
 TypeTableInfo::registerMemberPointerType(QualType T) {
+  using clang::Type;
+
   assert(T->getTypeClass() == Type::MemberPointer);
   std::string name = mapFromQualTypeToName[T];
   assert(name.empty());
@@ -367,6 +387,7 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
   bool isQualified = false;
   xmlNodePtr Node = nullptr;
   std::string rawname;
+  using clang::Type;
 
   if (T.isNull()) {
     return;
@@ -385,7 +406,7 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
     return;
   }
 
-  if (!isa<const ArrayType>(T.getTypePtr())) {
+  if (!isa<const clang::ArrayType>(T.getTypePtr())) {
     if (T.isConstQualified()) {
       isQualified = true;
     }
@@ -450,8 +471,8 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
     case Type::BlockPointer: {
       rawname = registerPointerType(T);
       Node = createNode(T, "pointerType", nullptr);
-      if (const PointerType *PT =
-              dyn_cast<const PointerType>(T.getTypePtr())) {
+      if (const clang::PointerType *PT =
+          dyn_cast<const clang::PointerType>(T.getTypePtr())) {
         registerType(PT->getPointeeType(), nullptr, nullptr);
         xmlNewProp(Node,
             BAD_CAST "ref",
@@ -497,7 +518,7 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
     case Type::DependentSizedArray:
     case Type::ConstantArray: {
       ASTContext &CXT = mangleContext->getASTContext();
-      const ArrayType *AT = CXT.getAsArrayType(T);
+      const clang::ArrayType *AT = CXT.getAsArrayType(T);
       if (AT) {
         registerType(AT->getElementType(), nullptr, nullptr);
       }
@@ -527,7 +548,7 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
 
     case Type::FunctionProto:
     case Type::FunctionNoProto: {
-      const FunctionType *FT = dyn_cast<const FunctionType>(T.getTypePtr());
+      const clang::FunctionType *FT = dyn_cast<const clang::FunctionType>(T.getTypePtr());
       if (FT) {
         registerType(FT->getReturnType(), nullptr, nullptr);
       }
@@ -685,12 +706,18 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
     case Type::ObjCInterface:
     case Type::ObjCObjectPointer:
     case Type::Atomic:
+    case Type::DependentAddressSpace:
+    case Type::DependentVector:
+    case Type::DeducedTemplateSpecialization:
       rawname = registerOtherType(T);
+      std::cerr << "OTHER TYPE"<< T->getTypeClassName()<<std::endl;
       // XXX: temporary implementation
       Node = createNode(T, "otherType", nullptr);
       xmlNewProp(
           Node, BAD_CAST "clang_type_class", BAD_CAST(T->getTypeClassName()));
       pushType(T, Node);
+      break;
+    default:
       break;
     }
 

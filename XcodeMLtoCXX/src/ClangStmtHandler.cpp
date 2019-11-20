@@ -4,6 +4,7 @@
 #include <map>
 #include <cassert>
 #include <vector>
+#include <string>
 #include <libxml/tree.h>
 #include <libxml/xpath.h>
 #include "llvm/ADT/Optional.h"
