@@ -49,6 +49,7 @@ createNode(xmlNodePtr node,
   const auto targetNode = findFirst(node, xpath, src.ctxt);
   if (!targetNode) {
     std::cerr << "In createNode" << std::endl
+	      << "Line" << node->line << std::endl
               << "not found: '" << xpath << "'" << std::endl;
     std::abort();
   }

@@ -208,6 +208,87 @@ public:                                                         \
     }                                                           \
     return true;   						\
   }
+  bool TraverseForStmt(ForStmt *S)
+  {
+        xmlNodePtr  save = curNode;
+        WalkUpFromForStmt(S);
+        const std::vector<std::tuple<const char *, Stmt *>>
+            children = {
+                        std::make_tuple("init", S->getInit()),
+                        std::make_tuple("cond", S->getCond()),
+                        std::make_tuple("iter", S->getInc()),
+                        std::make_tuple("body", S->getBody()),
+        };
+        for (auto &child : children) {
+            const char *kind;
+            Stmt *stmt;
+            std::tie(kind, stmt) = child;
+            if (stmt) {
+                TraverseStmt(stmt);
+                xmlNewProp(xmlGetLastChild(curNode),
+                           BAD_CAST "for_stmt_kind", BAD_CAST kind);
+            }
+        }
+        curNode = save;
+        if(CXXtoXML::debug_flag) printf("*** pop curNode=%p\n",(void *)curNode);
+        return true;
+    }
+  bool TraverseInitListExpr(InitListExpr *ILE)
+  {
+    WalkUpFromInitListExpr(ILE);
+    for (auto& range : ILE->children()) {
+          TraverseStmt(range);
+    }
+    return true;
+  }
+  bool TraverseCXXDefaultArgExpr(CXXDefaultArgExpr *CDAE)
+  {
+    WalkUpFromCXXDefaultArgExpr(CDAE);
+    const auto E = CDAE->getExpr();
+    TraverseStmt(E);
+    return true;
+  }
+  bool TraverseUnaryExprOrTypeTraitExpr(UnaryExprOrTypeTraitExpr *UEOTTE)
+  {
+    WalkUpFromUnaryExprOrTypeTraitExpr(UEOTTE);
+    switch (UEOTTE->getKind()) {
+    case UETT_SizeOf: {
+      newChild("sizeOfExpr");
+      TraverseType(static_cast<Expr *>(UEOTTE)->getType());
+      if (UEOTTE->isArgumentType()) {
+        newChild("typeName");
+        TraverseType(UEOTTE->getArgumentType());
+        break;
+      } else {
+        TraverseStmt(UEOTTE->getArgumentExpr());
+        break; // already traversed
+      }
+    }
+    case UETT_AlignOf: {
+      newChild("gccAlignOfExpr");
+      TraverseType(static_cast<Expr *>(UEOTTE)->getType());
+      if (UEOTTE->isArgumentType()) {
+        newChild("typeName");
+        TraverseType(UEOTTE->getArgumentType());
+      } else {
+        TraverseStmt(UEOTTE->getArgumentExpr());
+      }
+      break;
+    }
+    case UETT_VecStep:
+      newChild("clangStmt");
+      newProp("class", "UnaryExprOrTypeTraitExpr_UETT_VecStep");
+      break;
+
+    case UETT_OpenMPRequiredSimdAlign:
+      //  NStmt("UnaryExprOrTypeTraitExpr(UETT_OpenMPRequiredSimdAlign");
+    case UETT_PreferredAlignOf:
+    default:
+        UEOTTE->dump();
+        abort();
+    }
+    return true ;
+  }
 
 // DISPATCHER(Stmt, clang::Stmt *);
   bool VisitStmt(clang::Stmt *);

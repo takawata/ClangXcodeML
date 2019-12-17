@@ -50,27 +50,6 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
   newProp("class", S->getStmtClassName());
   setLocation(S->getBeginLoc());
 
-  // for "For" statement
-  if (auto FS = dyn_cast<ForStmt>(S)) {
-    const std::vector<std::tuple<const char *, Stmt *>> children = {
-        std::make_tuple("init", FS->getInit()),
-        std::make_tuple("cond", FS->getCond()),
-        std::make_tuple("iter", FS->getInc()),
-        std::make_tuple("body", FS->getBody()),
-    };
-    for (auto &child : children) {
-      const char *kind;
-      Stmt *stmt;
-      std::tie(kind, stmt) = child;
-      if (stmt) {
-        TraverseStmt(stmt);
-        xmlNewProp(xmlGetLastChild(curNode),
-                   BAD_CAST "for_stmt_kind", BAD_CAST kind);
-      }
-    }
-    return false; // already traversed
-  }
-
   const BinaryOperator *BO = dyn_cast<const BinaryOperator>(S);
   if (BO) {
     auto namePtr = BOtoElemName(BO->getOpcode());
@@ -106,12 +85,6 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
 
   if (const auto BE = dyn_cast<CXXBoolLiteralExpr>(S)) {
     newProp("bool_value", (BE->getValue() ? "true" : "false"));
-  }
-
-  if (const auto CDAE = dyn_cast<CXXDefaultArgExpr>(S)) {
-    const auto E = CDAE->getExpr();
-    TraverseStmt(E);
-    return false;
   }
 
   if (const auto CDE = dyn_cast<CXXDeleteExpr>(S)) {
@@ -220,56 +193,6 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
     newProp("stringLiteral", literalAsString.c_str());
   }
 
-  if (auto ILE = dyn_cast<InitListExpr>(S)) {
-    /* `InitListExpr` has two kinds of children, `SyntacticForm`
-     * and `SemanticForm`. Do not traverse `SyntacticForm`,
-     * otherwise it emits the elements twice.
-     */
-    for (auto &range : ILE->children()) {
-      TraverseStmt(range);
-    }
-    return false;
-  }
-
-  UnaryExprOrTypeTraitExpr *UEOTTE = dyn_cast<UnaryExprOrTypeTraitExpr>(S);
-  if (UEOTTE) {
-    // 7.8 sizeof, alignof
-    switch (UEOTTE->getKind()) {
-    case UETT_SizeOf: {
-      newChild("sizeOfExpr");
-      TraverseType(static_cast<Expr *>(S)->getType());
-      if (UEOTTE->isArgumentType()) {
-        newChild("typeName");
-        TraverseType(UEOTTE->getArgumentType());
-        return true;
-      } else {
-        TraverseStmt(UEOTTE->getArgumentExpr());
-        return false; // already traversed
-      }
-    }
-    case UETT_AlignOf: {
-      newChild("gccAlignOfExpr");
-      TraverseType(static_cast<Expr *>(S)->getType());
-      if (UEOTTE->isArgumentType()) {
-        newChild("typeName");
-        TraverseType(UEOTTE->getArgumentType());
-      } else {
-        TraverseStmt(UEOTTE->getArgumentExpr());
-      }
-      return true;
-    }
-    case UETT_VecStep:
-      newChild("clangStmt");
-      newProp("class", "UnaryExprOrTypeTraitExpr_UETT_VecStep");
-      return true;
-
-      // case UETT_OpenMPRequiredSimdAlign:
-      //  NStmt("UnaryExprOrTypeTraitExpr(UETT_OpenMPRequiredSimdAlign");
-    default:
-        UEOTTE->dump();
-        abort();
-    }
-  }
 
   if (const auto LS = dyn_cast<LabelStmt>(S)) {
     newProp("label_name", LS->getName());
