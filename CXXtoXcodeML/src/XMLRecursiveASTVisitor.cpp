@@ -48,7 +48,7 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
 #endif
   newChild("clangStmt");
   newProp("class", S->getStmtClassName());
-  setLocation(S->getLocStart());
+  setLocation(S->getBeginLoc());
 
   // for "For" statement
   if (auto FS = dyn_cast<ForStmt>(S)) {
@@ -187,7 +187,7 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
     newProp("token", spelling.str().c_str());
   }
 
-  if (auto SL = dyn_cast<StringLiteral>(S)) {
+  if (auto SL = dyn_cast<clang::StringLiteral>(S)) {
     StringRef Data = SL->getString();
     std::string literalAsString;
     raw_string_ostream OS(literalAsString);
@@ -225,8 +225,8 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
      * and `SemanticForm`. Do not traverse `SyntacticForm`,
      * otherwise it emits the elements twice.
      */
-    for (Stmt::child_range range = ILE->children(); range; ++range) {
-      TraverseStmt(*range);
+    for (auto &range : ILE->children()) {
+      TraverseStmt(range);
     }
     return false;
   }
@@ -265,6 +265,9 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
 
       // case UETT_OpenMPRequiredSimdAlign:
       //  NStmt("UnaryExprOrTypeTraitExpr(UETT_OpenMPRequiredSimdAlign");
+    default:
+        UEOTTE->dump();
+        abort();
     }
   }
 
@@ -820,7 +823,7 @@ XMLRecursiveASTVisitor::NameForConstructorInitializer(clang::CXXCtorInitializer 
 bool
 XMLRecursiveASTVisitor::SourceLocForStmt(clang::Stmt *S, clang::SourceLocation &SL) {
   if (S) {
-    SL = S->getLocStart();
+    SL = S->getBeginLoc();
     return true;
   } else {
     return false;
@@ -835,7 +838,7 @@ XMLRecursiveASTVisitor::SourceLocForType(clang::QualType QT, clang::SourceLocati
 
 bool
 XMLRecursiveASTVisitor::SourceLocForTypeLoc(clang::TypeLoc TL, clang::SourceLocation &SL) {
-  SL = TL.getLocStart();
+  SL = TL.getBeginLoc();
   return true;
 }
 
@@ -852,7 +855,7 @@ XMLRecursiveASTVisitor::SourceLocForAttr(clang::Attr *A, clang::SourceLocation &
 bool
 XMLRecursiveASTVisitor::SourceLocForDecl(clang::Decl *D, clang::SourceLocation &SL) {
   if (D) {
-    SL = D->getLocStart();
+    SL = D->getBeginLoc();
     return true;
   } else {
     return false;
@@ -874,7 +877,7 @@ XMLRecursiveASTVisitor::SourceLocForNestedNameSpecifierLoc(clang::NestedNameSpec
 
 bool
 XMLRecursiveASTVisitor::SourceLocForDeclarationNameInfo(clang::DeclarationNameInfo DN, clang::SourceLocation &SL) {
-  SL = DN.getLocStart();
+  SL = DN.getBeginLoc();
   return true;
 }
 

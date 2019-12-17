@@ -44,11 +44,11 @@ public:
 public:                                                         \
   bool Traverse##NAME(TYPE S) {                                 \
     xmlNodePtr save = curNode; \
-    if(debug_flag) printf("*** push curNode=%p\n",(void *)curNode);      \
+    if(CXXtoXML::debug_flag) printf("*** push curNode=%p\n",(void *)curNode); \
     bool ret = RecursiveASTVisitor<Derived>::Traverse##NAME(S); \
     ret &= getDerived().PostVisit##NAME(S);			\
     curNode = save; \
-    if(debug_flag) printf("*** pop curNode=%p\n",(void *)curNode);       \
+    if(CXXtoXML::debug_flag) printf("*** pop curNode=%p\n",(void *)curNode); \
     return ret;                                                 \
   }  \
   bool PostVisit##NAME(TYPE S) {                                \

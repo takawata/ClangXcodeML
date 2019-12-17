@@ -129,6 +129,7 @@ main(int argc, const char **argv) {
       newFrontendActionFactory<XMLASTDumpAction>();
   return Tool.run(FrontendFactory.get());
 }
+cl::OptionCategory CXX2XMLCategory("CXXtoXML options");
 
 ///
 /// Local Variables:

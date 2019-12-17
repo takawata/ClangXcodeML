@@ -95,15 +95,19 @@ TypeTableInfo::registerFunctionType(QualType T) {
       || T->getTypeClass() == Type::FunctionNoProto);
 
   std::string name = mapFromQualTypeToName[T];
+#if 0
   std::cerr<<T.getAsString()<<std::endl;
   if(!name.empty()){
     std::cerr<<name<<std::endl;
   }
+#endif
   assert(name.empty());
 
   raw_string_ostream OS(name);
   OS << "Function" << seqForFunctionType++;
+#if 0
   std::cerr<<OS.str()<<std::endl;
+#endif
   return mapFromQualTypeToName[T] = OS.str();
 }
 
