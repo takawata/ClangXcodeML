@@ -127,8 +127,12 @@ DeclarationsVisitor::PreVisitStmt(Stmt *S) {
   if (auto OCE = dyn_cast<clang::CXXOperatorCallExpr>(S)) {
     newProp("xcodeml_operator_kind",
         OverloadedOperatorKindToString(OCE->getOperator(), OCE->getNumArgs()));
-    const auto is_member = isa<clang::CXXMethodDecl>(OCE->getDirectCallee());
-    newBoolProp("is_member_function", is_member);
+    if (OCE->getDirectCallee() == nullptr) {
+      newBoolProp("is_member_function", false);
+    }else{
+      const auto is_member = isa<clang::CXXMethodDecl>(OCE->getDirectCallee());
+      newBoolProp("is_member_function", is_member);
+    }
   }
 
   if (auto NL = dyn_cast<CXXNewExpr>(S)) {
@@ -253,8 +257,10 @@ DeclarationsVisitor::PreVisitStmt(Stmt *S) {
         return false; // already traversed
       }
     }
+    case UETT_PreferredAlignOf:
     case UETT_AlignOf: {
-      newChild("gccAlignOfExpr");
+      newChild((UEOTTE->getKind()==UETT_PreferredAlignOf) ?
+               "gccAlignOfExpr" : "AlignOfExpr");
       TraverseType(static_cast<Expr *>(S)->getType());
       if (UEOTTE->isArgumentType()) {
         newChild("typeName");
@@ -274,10 +280,8 @@ DeclarationsVisitor::PreVisitStmt(Stmt *S) {
       //  NStmt("UnaryExprOrTypeTraitExpr(UETT_OpenMPRequiredSimdAlign");
       abort();
       return true;
-    case UETT_PreferredAlignOf:
-      abort();
-      return true;      
     default:
+      S->dump();
       abort();
     }
   }
