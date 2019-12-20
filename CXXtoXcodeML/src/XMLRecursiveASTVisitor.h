@@ -61,7 +61,7 @@ public:                                                         \
   DISPATCHER(Attr, clang::Attr *);
   DISPATCHER(Decl, clang::Decl *);
   DISPATCHER(NestedNameSpecifier, clang::NestedNameSpecifier *);
-  DISPATCHER(NestedNameSpecifierLoc, clang::NestedNameSpecifierLoc);
+    //  DISPATCHER(NestedNameSpecifierLoc, clang::NestedNameSpecifierLoc);
   DISPATCHER(DeclarationNameInfo, clang::DeclarationNameInfo);
   DISPATCHER(TemplateName, clang::TemplateName);
   DISPATCHER(TemplateArgument, const clang::TemplateArgument &);
@@ -75,9 +75,9 @@ public:                                                         \
         bool ret = getDerived().VisitType(S);
         ret &= RecursiveASTVisitor<Derived>::TraverseType(S);
         curNode = save;
-        return ret;
+        return true;
     }
-
+#if 0
     bool TraverseDecl(TranslationUnitDecl *D){
         xmlNodePtr save = curNode;
         bool ret = getDerived().VisitDecl(D);
@@ -88,7 +88,7 @@ public:                                                         \
         curNode = save;
         return ret;
     }
-
+#endif
   // bool TraverseStmt(Stmt *S) {  
   //   xmlNodePtr save = curNode;
   //   // printf("*** push(Stmt) curNode=%p\n",(void *)curNode);
@@ -287,6 +287,9 @@ public:                                                         \
         UEOTTE->dump();
         abort();
     }
+    if(UEOTTE->isArgumentType())
+        TraverseTypeLoc(UEOTTE->getArgumentTypeInfo()->getTypeLoc());
+
     return true ;
   }
 
@@ -303,8 +306,7 @@ public:                                                         \
   bool PostVisitDecl(clang::Decl *);
 //  DISPATCHER(NestedNameSpecifier, clang::NestedNameSpecifier *);
   DEF_VISITOR(NestedNameSpecifier, clang::NestedNameSpecifier *);
-//  DISPATCHER(NestedNameSpecifierLoc, clang::NestedNameSpecifierLoc);
-  bool VisitNestedNameSpecifierLoc(clang::NestedNameSpecifierLoc);
+  bool TraverseNestedNameSpecifierLoc(clang::NestedNameSpecifierLoc);
 //  DISPATCHER(DeclarationNameInfo, clang::DeclarationNameInfo);
   bool VisitDeclarationNameInfo(clang::DeclarationNameInfo);
 
@@ -316,7 +318,7 @@ public:                                                         \
   DEF_VISITOR(TemplateArgumentLoc, const clang::TemplateArgumentLoc &);
 
 //  DISPATCHER(ConstructorInitializer, clang::CXXCtorInitializer *);
-  bool VisitConstructorInitializer(clang::CXXCtorInitializer *);
+  bool TraverseConstructorInitializer(clang::CXXCtorInitializer *);
 #undef DEF_ADD_COMMENT
 #undef DEF_VISITOR
 

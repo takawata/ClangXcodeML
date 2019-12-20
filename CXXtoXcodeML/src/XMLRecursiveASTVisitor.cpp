@@ -221,7 +221,7 @@ XMLRecursiveASTVisitor::VisitType(QualType T) {
 
   
 
-  return false;
+  return true;
 }
 
 bool
@@ -474,7 +474,13 @@ SpecifierKindToString(clang::NestedNameSpecifier::SpecifierKind kind) {
 } // namespace
 
 bool
-XMLRecursiveASTVisitor::VisitNestedNameSpecifierLoc(NestedNameSpecifierLoc N) {
+XMLRecursiveASTVisitor::TraverseNestedNameSpecifierLoc(NestedNameSpecifierLoc N) {
+  if(!N)
+    return true;
+  auto save = curNode;
+  if(NestedNameSpecifierLoc Prefix = N.getPrefix())
+    TraverseNestedNameSpecifierLoc(Prefix);
+
   const auto Spec = N.getNestedNameSpecifier();
   if (!Spec) {
     return true;
@@ -497,20 +503,23 @@ XMLRecursiveASTVisitor::VisitNestedNameSpecifierLoc(NestedNameSpecifierLoc N) {
     xmlAddChild(curNode, nameNode);
     break;
   }
+  case NestedNameSpecifier::TypeSpecWithTemplate:
   case NestedNameSpecifier::TypeSpec: {
     const auto T = Spec->getAsType();
     assert(T);
     const auto dtident = typetableinfo.getTypeName(QualType(T, 0));
     newProp("xcodemlType", dtident.c_str());
+    TraverseTypeLoc(N.getTypeLoc());
     break;
   }
   default: break;
   }
+  curNode = save;
   return true;
 }
 
 bool
-XMLRecursiveASTVisitor::VisitConstructorInitializer(CXXCtorInitializer *CI) {
+XMLRecursiveASTVisitor::TraverseConstructorInitializer(CXXCtorInitializer *CI) {
   if (!CI) {
     return true;
   }
