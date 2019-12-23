@@ -478,6 +478,8 @@ XMLRecursiveASTVisitor::TraverseNestedNameSpecifierLoc(NestedNameSpecifierLoc N)
   if(!N)
     return true;
   auto save = curNode;
+
+  newChild("clangNestedNameSpecifier");
   if(NestedNameSpecifierLoc Prefix = N.getPrefix())
     TraverseNestedNameSpecifierLoc(Prefix);
 
@@ -485,7 +487,7 @@ XMLRecursiveASTVisitor::TraverseNestedNameSpecifierLoc(NestedNameSpecifierLoc N)
   if (!Spec) {
     return true;
   }
-  newChild("clangNestedNameSpecifier");
+
   const auto kind = SpecifierKindToString(Spec->getKind());
   newProp("clang_nested_name_specifier_kind", kind.c_str());
 
