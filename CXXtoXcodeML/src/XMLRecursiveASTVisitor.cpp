@@ -519,7 +519,7 @@ XMLRecursiveASTVisitor::TraverseNestedNameSpecifierLoc(NestedNameSpecifierLoc N)
 }
 
 bool
-XMLRecursiveASTVisitor::TraverseConstructorInitializer(CXXCtorInitializer *CI) {
+XMLRecursiveASTVisitor::VisitConstructorInitializer(CXXCtorInitializer *CI) {
   if (!CI) {
     return true;
   }

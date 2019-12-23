@@ -66,9 +66,19 @@ public:                                                         \
   DISPATCHER(TemplateName, clang::TemplateName);
   DISPATCHER(TemplateArgument, const clang::TemplateArgument &);
   DISPATCHER(TemplateArgumentLoc, const clang::TemplateArgumentLoc &);
-  DISPATCHER(ConstructorInitializer, clang::CXXCtorInitializer *);
     // DISPATCHER(Type, clang::QualType);
 #undef DISPATCHER
+    bool VisitConstructorInitializer(clang::CXXCtorInitializer *CI) {
+        return true;
+    }
+
+  bool TraverseConstructorInitializer(clang::CXXCtorInitializer *CI){
+      auto save = curNode;
+      getDerived().VisitConstructorInitializer(CI);
+      RecursiveASTVisitor<Derived>::TraverseConstructorInitializer(CI);
+      curNode = save;
+      return true;
+  }
 
     bool TraverseType(clang::QualType S){
         xmlNodePtr save = curNode;
@@ -317,10 +327,9 @@ public:                                                         \
 //  DISPATCHER(TemplateArgumentLoc, const clang::TemplateArgumentLoc &);
   DEF_VISITOR(TemplateArgumentLoc, const clang::TemplateArgumentLoc &);
 
-//  DISPATCHER(ConstructorInitializer, clang::CXXCtorInitializer *);
-  bool TraverseConstructorInitializer(clang::CXXCtorInitializer *);
 #undef DEF_ADD_COMMENT
 #undef DEF_VISITOR
+    bool VisitConstructorInitializer(clang::CXXCtorInitializer *);
 
     bool VisitType(Type* S) {
         (void) S;
