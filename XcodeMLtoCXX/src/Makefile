@@ -1,5 +1,5 @@
-LLVM_CONFIG = /usr/local/bin/llvm-config
-CXX = /usr/local/bin/clang++
+LLVM_CONFIG = /usr/local/llvm36/bin/llvm-config
+#CXX = /usr/local/llvm36/bin/clang++
 CXXFLAGS = $(OPTIMIZERFLAGS) -g -Wall -Wextra -fno-rtti -std=c++11 -pedantic \
 	-I $(shell $(LLVM_CONFIG) --includedir) \
 	$(PKG_CFLAGS) \
