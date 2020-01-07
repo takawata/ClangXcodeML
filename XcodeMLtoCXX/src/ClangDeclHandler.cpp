@@ -385,7 +385,7 @@ DEFINE_DECLHANDLER(FunctionTemplateProc) {
   }
   const auto paramNodes =
       findNodes(node, "clangDecl[@class='TemplateTypeParm']", src.ctxt);
-  const auto body = findFirst(node, "clangDecl", src.ctxt);
+  const auto body = findFirst(node, "clangDecl[@class='Function']", src.ctxt);
 
   std::vector<CXXCodeGen::StringTreeRef> params;
   for (auto &&paramNode : paramNodes) {
