@@ -34,6 +34,7 @@ template <typename Derived>
 class ExtendedRecursiveASTVisitor : public RecursiveASTVisitor<Derived> {
 protected:
   xmlNodePtr curNode; // a candidate of the new chlid.
+  using BASE = RecursiveASTVisitor<Derived>;
 public:
   /// \brief Return a reference to the derived class.
   Derived &getDerived() { return *static_cast<Derived *>(this); }
@@ -62,10 +63,10 @@ public:                                                         \
   DISPATCHER(Decl, clang::Decl *);
   DISPATCHER(NestedNameSpecifier, clang::NestedNameSpecifier *);
     //  DISPATCHER(NestedNameSpecifierLoc, clang::NestedNameSpecifierLoc);
-  DISPATCHER(DeclarationNameInfo, clang::DeclarationNameInfo);
+    //DISPATCHER(DeclarationNameInfo, clang::DeclarationNameInfo);
   DISPATCHER(TemplateName, clang::TemplateName);
-  DISPATCHER(TemplateArgument, const clang::TemplateArgument &);
-  DISPATCHER(TemplateArgumentLoc, const clang::TemplateArgumentLoc &);
+    //DISPATCHER(TemplateArgument, const clang::TemplateArgument &);
+    //DISPATCHER(TemplateArgumentLoc, const clang::TemplateArgumentLoc &);
     // DISPATCHER(Type, clang::QualType);
 #undef DISPATCHER
     bool VisitConstructorInitializer(clang::CXXCtorInitializer *CI) {
@@ -79,7 +80,39 @@ public:                                                         \
       curNode = save;
       return true;
   }
-
+    bool VisitTemplateArgumentLoc(clang::TemplateArgumentLoc &AL)
+    {
+        return true;
+    }
+    bool VisitTemplateArgument(clang::TemplateArgument &Arg)
+    {
+        return true;
+    }
+    bool VisitDeclarationNameInfo(clang::DeclarationNameInfo DNI)
+    {
+        return true;
+    }
+    bool TraverseTemplateArgument(const clang::TemplateArgument &TA){
+        auto save = curNode;
+        getDerived().VisitTemplateArgument(TA);
+        BASE::TraverseTemplateArgument(TA);
+        curNode = save;
+        return true;
+    }
+    bool TraverseTemplateArgumentLoc(const clang::TemplateArgumentLoc &ArgLoc){
+        auto save = curNode;
+        getDerived().VisitTemplateArgumentLoc(ArgLoc);
+        BASE::TraverseTemplateArgumentLoc(ArgLoc);
+        curNode = save;
+        return true;
+    }
+    bool TraverseDeclarationNameInfo(clang::DeclarationNameInfo DNI){
+        auto save = curNode;
+        getDerived().VisitDeclarationNameInfo(DNI);
+        BASE::TraverseDeclarationNameInfo(DNI);
+        curNode = save;
+        return true;
+    }
     bool TraverseType(clang::QualType S){
         xmlNodePtr save = curNode;
         bool ret = getDerived().VisitType(S);
