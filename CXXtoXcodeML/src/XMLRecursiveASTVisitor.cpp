@@ -2,7 +2,6 @@
 #include "clang/Tooling/Tooling.h"
 #include "clang/Driver/Options.h"
 #include "clang/Lex/Lexer.h"
-
 #include <sstream>
 #include <string>
 #include <type_traits>
@@ -95,8 +94,12 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
   if (auto OCE = dyn_cast<clang::CXXOperatorCallExpr>(S)) {
     newProp("xcodeml_operator_kind",
         OverloadedOperatorKindToString(OCE->getOperator(), OCE->getNumArgs()));
-    const auto is_member = isa<clang::CXXMethodDecl>(OCE->getDirectCallee());
-    newBoolProp("is_member_function", is_member);
+    if (OCE->getDirectCallee() == nullptr) {
+      newBoolProp("is_member_function", false);
+    }else{
+      const auto is_member = isa<clang::CXXMethodDecl>(OCE->getDirectCallee());
+      newBoolProp("is_member_function", is_member);
+    }
   }
 
   if (auto NL = dyn_cast<CXXNewExpr>(S)) {
@@ -268,7 +271,7 @@ getLanguageIdAsString(clang::LinkageSpecDecl::LanguageIDs id) {
 } // namespace
 
 bool
-XMLRecursiveASTVisitor::VisitDecl(Decl *D) {
+XMLRecursiveASTVisitor::PreVisitDecl(Decl *D) {
   if (!D) {
     return true;
   }

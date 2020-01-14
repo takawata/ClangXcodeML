@@ -543,6 +543,8 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
       const auto *FT = dyn_cast<const clang::FunctionType>(T.getTypePtr());
       if (FT) {
         registerType(FT->getReturnType(), nullptr, nullptr);
+        if(mapFromQualTypeToName.find(T) != mapFromQualTypeToName.end())
+            break;
       }
       rawname = registerFunctionType(T);
       Node = createNode(T, "functionType", nullptr);

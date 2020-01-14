@@ -60,7 +60,25 @@ public:                                                         \
   DISPATCHER(Stmt, clang::Stmt *);
   DISPATCHER(TypeLoc, clang::TypeLoc);
   DISPATCHER(Attr, clang::Attr *);
-  DISPATCHER(Decl, clang::Decl *);
+    // DISPATCHER(Decl, clang::Decl *);
+  bool PreVisitDecl(clang::Decl *S) {
+    (void) S;
+    return true;
+  }
+  bool TraverseDecl(clang::Decl *S) {
+        xmlNodePtr save = curNode;
+    if(CXXtoXML::debug_flag) printf("*** push curNode=%p\n",(void *)curNode);
+    getDerived().PreVisitDecl(S);
+    bool ret = RecursiveASTVisitor<Derived>::TraverseDecl(S);
+    ret &= getDerived().PostVisitDecl(S);
+    curNode = save;
+    if(CXXtoXML::debug_flag) printf("*** pop curNode=%p\n",(void *)curNode);
+    return ret;
+  }
+  bool PostVisitDecl(clang::Decl *S) {
+    (void) S;
+    return true;
+  }
   DISPATCHER(NestedNameSpecifier, clang::NestedNameSpecifier *);
     //  DISPATCHER(NestedNameSpecifierLoc, clang::NestedNameSpecifierLoc);
     //DISPATCHER(DeclarationNameInfo, clang::DeclarationNameInfo);
@@ -307,8 +325,10 @@ public:                                                         \
         break; // already traversed
       }
     }
+    case UETT_PreferredAlignOf:
     case UETT_AlignOf: {
-      newChild("gccAlignOfExpr");
+        newChild((UEOTTE->getKind()==UETT_PreferredAlignOf) ?
+                 "gccAlignOfExpr" : "AlignOfExpr");
       TraverseType(static_cast<Expr *>(UEOTTE)->getType());
       if (UEOTTE->isArgumentType()) {
         newChild("typeName");
@@ -325,7 +345,6 @@ public:                                                         \
 
     case UETT_OpenMPRequiredSimdAlign:
       //  NStmt("UnaryExprOrTypeTraitExpr(UETT_OpenMPRequiredSimdAlign");
-    case UETT_PreferredAlignOf:
     default:
         UEOTTE->dump();
         abort();
@@ -345,7 +364,7 @@ public:                                                         \
 //  DISPATCHER(Attr, clang::Attr *);
   bool VisitAttr(clang::Attr *);
 //  DISPATCHER(Decl, clang::Decl *);
-  bool VisitDecl(clang::Decl *);
+  bool PreVisitDecl(clang::Decl *);
   bool PostVisitDecl(clang::Decl *);
 //  DISPATCHER(NestedNameSpecifier, clang::NestedNameSpecifier *);
   DEF_VISITOR(NestedNameSpecifier, clang::NestedNameSpecifier *);
