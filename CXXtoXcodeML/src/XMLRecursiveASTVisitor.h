@@ -32,9 +32,9 @@ using namespace clang;
 
 template <typename Derived>
 class ExtendedRecursiveASTVisitor : public RecursiveASTVisitor<Derived> {
+  using BASE = RecursiveASTVisitor<Derived>;
 protected:
   xmlNodePtr curNode; // a candidate of the new chlid.
-  using BASE = RecursiveASTVisitor<Derived>;
 public:
   /// \brief Return a reference to the derived class.
   Derived &getDerived() { return *static_cast<Derived *>(this); }
