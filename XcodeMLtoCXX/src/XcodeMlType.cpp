@@ -416,9 +416,13 @@ Array::makeDeclaration(
   if (!elementType) {
     return makeTokenNode("INCOMPLETE_TYPE *") + var;
   }
-  const CodeFragment size_expression = size.kind == Size::Kind::Integer
-      ? makeTokenNode(std::to_string(size.size))
-      : makeTokenNode("*");
+  if(size.kind != Size::Kind::Integer){
+    // element size is Processed from callee
+    return makeDecl(elementType, var, env, nnsTable);
+  }
+  const CodeFragment size_expression =
+    makeTokenNode(std::to_string(size.size));
+
   const CodeFragment declarator = makeTokenNode("[")
       + (isConst() ? makeTokenNode("const") : makeVoidNode())
       + (isVolatile() ? makeTokenNode("volatile") : makeVoidNode())
@@ -749,8 +753,14 @@ ClassType::getAsTemplateId(
   }
   std::vector<CodeFragment> targs;
   for (auto &&dtident : *templateArgs) {
-    const auto T = typeTable.at(dtident);
-    targs.push_back(makeDecl(T, makeVoidNode(), typeTable, nnsTable));
+    CodeFragment arg;
+    if(!dtident.argType){
+      const auto T = typeTable.at(dtident.ident);
+      arg = makeDecl(T, makeVoidNode(), typeTable, nnsTable);
+    }else{
+      arg = makeTokenNode(dtident.ident);
+    }
+    targs.push_back(arg);
   }
   const auto list = makeTokenNode("<") + join(",", targs) + makeTokenNode(">");
   return MaybeCodeFragment(name_ + list);
@@ -816,7 +826,7 @@ OtherType::OtherType(const DataTypeIdent &ident)
 CodeFragment
 OtherType::makeDeclaration(
     CodeFragment var, const TypeTable &, const NnsTable &) {
-  return makeTokenNode("/*") + var + makeTokenNode("*/");
+  return makeTokenNode("void") + makeTokenNode("/*") + var + makeTokenNode("*/");
 }
 
 Type *

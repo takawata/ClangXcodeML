@@ -322,9 +322,12 @@ public:
   CodeFragment addConstQualifier(CodeFragment) const override;
   CodeFragment addVolatileQualifier(CodeFragment) const override;
   static bool classof(const Type *);
+  CodeFragment makeVsizeDeclaration(
+     CodeFragment, const TypeTable &, const NnsTable & xmlNodePtr );
+
   /*! Returns the element type as `XcodeMl::TypeRef`. */
   TypeRef getElemType(const TypeTable &) const;
-
+  bool isFixedSize(){ return (size.kind == Size::Kind::Integer);}
 protected:
   Array(const Array &);
 
@@ -428,7 +431,11 @@ public:
   using MemberName = std::shared_ptr<UnqualId>;
   using Symbols = std::vector<std::tuple<MemberName, DataTypeIdent>>;
   using BaseClass = std::tuple<std::string, DataTypeIdent, bool>;
-  using TemplateArg = DataTypeIdent;
+  struct TemplateArg {
+    int argType;
+    DataTypeIdent ident;
+  };
+  //using TemplateArg = DataTypeIdent;
   using TemplateArgList = std::vector<TemplateArg>;
   ClassType(const DataTypeIdent &, const CodeFragment &, const Symbols &);
   ClassType(const DataTypeIdent &,

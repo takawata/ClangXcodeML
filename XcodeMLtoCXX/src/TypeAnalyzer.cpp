@@ -170,8 +170,19 @@ getTemplateArgs(xmlNodePtr node, xmlXPathContextPtr ctxt) {
     return MaybeList();
   }
   ClassType::TemplateArgList targs;
-  for (auto &&targNode : findNodes(targsNode, "typeName", ctxt)) {
-    targs.push_back(getProp(targNode, "ref"));
+  for (auto &&targNode : findNodes(targsNode, "*", ctxt)) {
+    ClassType::TemplateArg arg;
+    if(strcmp((const char *) targNode->name, "typeName")==0){
+      arg.argType = 0;
+      arg.ident = getProp(targNode, "ref");
+    }else if(strcmp((const char *)targNode->name, "integral")==0){
+      arg.argType = 1;
+      arg.ident = getProp(targNode, "value");
+    }else {
+      arg.argType = 1;
+      arg.ident = "Other";
+    }
+    targs.push_back(arg);
   }
   return MaybeList(targs);
 }
@@ -213,7 +224,11 @@ DEFINE_TA(TemplateTypeParmTypeProc) {
   const auto name = getContent(findFirst(node, "name", ctxt));
   map[dtident] = XcodeMl::makeTemplateTypeParm(dtident, makeTokenNode(name));
 }
-
+DEFINE_TA(otherTypeProc){
+  const auto dtident = getProp(node, "type");
+  const auto name = getContent(findFirst(node, "name", ctxt));
+  map[dtident] = XcodeMl::makeOtherType(dtident);
+}
 const std::vector<std::string> identicalFndDataTypeIdents = {
     "void",
     "char",
@@ -273,6 +288,7 @@ const TypeAnalyzer XcodeMLTypeAnalyzer("TypeAnalyzer",
         std::make_tuple("enumType", enumTypeProc),
         std::make_tuple("TemplateTypeParmType", TemplateTypeParmTypeProc),
         std::make_tuple("injectedClassNameType", classTypeProc),
+	std::make_tuple("otherType", otherTypeProc),
     });
 
 /*!

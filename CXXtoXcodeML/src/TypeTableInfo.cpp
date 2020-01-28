@@ -349,7 +349,13 @@ commonSetUpForRecordDecl(
         xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "nullptr"));
         break;
       case TemplateArgument::Integral:
-        xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "integral"));
+        {
+        const auto integNode = xmlNewNode(nullptr, BAD_CAST "integral");
+        xmlNewProp(integNode,
+                   BAD_CAST "value",
+                   BAD_CAST arg.getAsIntegral().toString(10).c_str());
+        xmlAddChild(templArgs, integNode);
+        }
         break;
       case TemplateArgument::Template:
         xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "template"));

@@ -96,10 +96,32 @@ DEFINE_DECLHANDLER(callCodeBuilder) {
   return makeInnerNode(ProgramBuilder.walkChildren(node, src));
 }
 
+  CodeFragment
+makeVariableArraySize(xmlNodePtr node, SourceInfo &src,
+		      const CodeBuilder &w)
+{
+  const auto dtident = getType(node);
+  const auto T = src.typeTable[dtident];
+  auto decl = CXXCodeGen::makeVoidNode();
+  const auto arrayT = llvm::dyn_cast<XcodeMl::Array>(T.get());
+  if(arrayT && !arrayT->isFixedSize()){
+    auto TL = findFirst(node, "clangTypeLoc", src.ctxt);
+    auto STMT = findFirst(TL, "clangStmt", src.ctxt);
+    if(STMT != nullptr){
+      auto arg = w.walk(STMT, src);
+      decl = decl +  wrapWithSquareBracket(arg);
+    }else{
+      CXXCodeGen::makeTokenNode("[*]");
+    }
+  }
+
+  return decl;
+}
+
 CodeFragment
 makeTemplateHead(xmlNodePtr node, const CodeBuilder &w, SourceInfo &src) {
   const auto paramNodes =
-      findNodes(node, "clangDecl[@class='TemplateTypeParm']", src.ctxt);
+      findNodes(node, "clangDecl[@class='TemplateTypeParm' or @class ='NonTypeTemplateParm']", src.ctxt);
   std::vector<CXXCodeGen::StringTreeRef> params;
   for (auto &&paramNode : paramNodes) {
     params.push_back(w.walk(paramNode, src));
@@ -338,12 +360,15 @@ DEFINE_DECLHANDLER(FieldDeclProc) {
   if (isTrueProp(node, "is_bit_field", false)) {
     const auto bitsNode = findFirst(node, "clangStmt", src.ctxt);
     bits = makeTokenNode(":") + w.walk(bitsNode, src);
+  }else{
+    bits = makeVariableArraySize(node, src, w);
   }
   if (!isTrueProp(node, "is_unnamed_bit_field", false)) {
     const auto nameNode = findFirst(node, "name", src.ctxt);
     name = getUnqualIdFromNameNode(nameNode)->toString(
         src.typeTable, src.nnsTable);
   }
+
   return makeDecl(T, name, src.typeTable, src.nnsTable) + bits;
 }
 
@@ -384,7 +409,7 @@ DEFINE_DECLHANDLER(FunctionTemplateProc) {
     src.nnsTable = expandNnsTable(src.nnsTable, nnsTableNode, src.ctxt);
   }
   const auto paramNodes =
-      findNodes(node, "clangDecl[@class='TemplateTypeParm']", src.ctxt);
+      findNodes(node, "clangDecl[@class='TemplateTypeParm' or @class ='NonTypeTemplateParm']", src.ctxt);
   const auto body = findFirst(node, "clangDecl[@class='Function']", src.ctxt);
 
   std::vector<CXXCodeGen::StringTreeRef> params;
@@ -457,8 +482,28 @@ DEFINE_DECLHANDLER(TranslationUnitProc) {
   }
   return foldDecls(node, w, src);
 }
+DEFINE_DECLHANDLER(TypeAliasTemplateProc){
+  if (const auto typeTableNode =
+          findFirst(node, "xcodemlTypeTable", src.ctxt)) {
+    src.typeTable = expandTypeTable(src.typeTable, typeTableNode, src.ctxt);
+  }
+  if (const auto nnsTableNode = findFirst(node, "xcodemlNnsTable", src.ctxt)) {
+    src.nnsTable = expandNnsTable(src.nnsTable, nnsTableNode, src.ctxt);
+  }
+  const auto paramNodes =
+      findNodes(node, "clangDecl[@class='TemplateTypeParm' or @class='NonTypeTemplateParm']", src.ctxt);
+  const auto body = findFirst(node, "clangDecl[@class='TypeAlias']", src.ctxt);
 
+  std::vector<CXXCodeGen::StringTreeRef> params;
+  for (auto &&paramNode : paramNodes) {
+    params.push_back(w.walk(paramNode, src));
+  }
+
+  return makeTokenNode("template") + makeTokenNode("<") + join(",", params)
+    + makeTokenNode(">") + w.walk(body, src) ;
+}
 DEFINE_DECLHANDLER(TypeAliasProc) {
+
   const auto dtident = getProp(node, "xcodemlTypedefType");
   const auto T = src.typeTable.at(dtident);
   const auto name = getUnqualIdFromIdNode(node, src.ctxt);
@@ -531,9 +576,11 @@ emitVarDecl(xmlNodePtr node,
       getQualifiedName(node, src).toString(src.typeTable, src.nnsTable);
   const auto dtident = getProp(node, "xcodemlType");
   const auto T = src.typeTable.at(dtident);
+  CodeFragment decl;
+  decl = makeSpecifier(node, is_in_class_scope)
+      + T->makeDeclaration(name, src.typeTable, src.nnsTable)
+    + makeVariableArraySize(node, src, w);
 
-  const auto decl = makeSpecifier(node, is_in_class_scope)
-      + T->makeDeclaration(name, src.typeTable, src.nnsTable);
   const auto initializerNode = findFirst(node, "clangStmt", src.ctxt);
   if (!initializerNode) {
     // does not have initalizer: `int x;`
@@ -556,6 +603,9 @@ DEFINE_DECLHANDLER(VarProc) {
 DEFINE_DECLHANDLER(VarProcInClass) {
   return emitVarDecl(node, w, src, true);
 }
+DEFINE_DECLHANDLER(NonTypeTemplateParmProc) {
+  return emitVarDecl(node, w, src, false);
+}
 
 } // namespace
 
@@ -575,8 +625,10 @@ const ClangDeclHandlerType ClangDeclHandlerInClass("class",
         std::make_tuple("Friend", FriendDeclProc),
         std::make_tuple("Using", UsingProc),
         std::make_tuple("TemplateTypeParm", TemplateTypeParmProc),
+	std::make_tuple("NonTypeTemplateParm", NonTypeTemplateParmProc),
         std::make_tuple("TypeAlias", TypeAliasProc),
         std::make_tuple("Typedef", TypedefProc),
+	std::make_tuple("TypeAliasTemplate", TypeAliasTemplateProc),
         std::make_tuple("Var", VarProcInClass),
     });
 
@@ -603,8 +655,10 @@ const ClangDeclHandlerType ClangDeclHandler("class",
         std::make_tuple("Namespace", NamespaceProc),
         std::make_tuple("Record", RecordProc),
         std::make_tuple("TemplateTypeParm", TemplateTypeParmProc),
+	std::make_tuple("NonTypeTemplateParm", NonTypeTemplateParmProc),
         std::make_tuple("TranslationUnit", TranslationUnitProc),
         std::make_tuple("TypeAlias", TypeAliasProc),
+	std::make_tuple("TypeAliasTemplate", TypeAliasTemplateProc),
         std::make_tuple("Typedef", TypedefProc),
         std::make_tuple("UsingDirective", UsingDirectiveProc),
         std::make_tuple("Var", VarProc),

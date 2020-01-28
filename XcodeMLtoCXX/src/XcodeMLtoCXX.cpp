@@ -32,7 +32,15 @@ main(int argc, char **argv) {
   xmlNodePtr root = xmlDocGetRootElement(doc);
   xmlXPathContextPtr ctxt = xmlXPathNewContext(doc);
   std::stringstream ss;
-  buildCode(root, ctxt, ss);
+  try{
+    buildCode(root, ctxt, ss);
+  }catch(std::exception &e){
+    std::cerr <<e.what()<<std::endl;
+    exit(-1);
+  }catch(...){
+    std::cerr << "Unknown Error"<<std::endl;
+    exit(-1);
+  }
   std::cout << ss.str() << std::endl;
   xmlXPathFreeContext(ctxt);
   xmlFreeDoc(doc);

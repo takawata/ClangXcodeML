@@ -92,10 +92,15 @@ public:
     assert(node && node->type == XML_ELEMENT_NODE);
     XMLString elemName = node->name;
     auto iter = map.find(elemName);
-    if (iter != map.end()) {
-      return (iter->second)(*this, node, args...);
-    } else {
-      return fold(walkAll(node->children, args...));
+    try{
+      if (iter != map.end()) {
+	return (iter->second)(*this, node, args...);
+      } else {
+	return fold(walkAll(node->children, args...));
+      }
+    }catch(std::exception &e){
+      std::cerr<< node->name <<node->line<<std::endl;
+      throw ;
     }
   }
 

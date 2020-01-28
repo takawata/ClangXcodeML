@@ -356,11 +356,14 @@ DEFINE_STMTHANDLER(CXXTryStmtProc) {
 DEFINE_STMTHANDLER(DeclRefExprProc) {
   const auto name = getQualifiedName(node, src);
 
-  if (const auto TAL = findFirst(node, "TemplateArgumentLoc", src.ctxt)) {
-    const auto templArgNodes = findNodes(TAL, "*", src.ctxt);
+  const auto TAL = findNodes(node, "TemplateArgumentLoc", src.ctxt);
+  if(TAL.size() != 0){
     std::vector<CodeFragment> args;
-    for (auto &&argNode : templArgNodes) {
-      args.push_back(w.walk(argNode, src));
+    for(auto &&talNodes : TAL){
+      const auto templArgNodes = findNodes(talNodes, "*", src.ctxt);
+      for (auto &&argNode : templArgNodes) {
+	args.push_back(w.walk(argNode, src));
+      }
     }
     return name.toString(src.typeTable, src.nnsTable) + makeTokenNode("<")
         + join(",", args) + makeTokenNode(">");
