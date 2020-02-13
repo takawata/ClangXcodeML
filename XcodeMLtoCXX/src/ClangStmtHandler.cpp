@@ -480,6 +480,14 @@ DEFINE_STMTHANDLER(LabelStmtProc) {
   return makeTokenNode(label) + makeTokenNode(":") + body;
 }
 
+DEFINE_STMTHANDLER(CXXDependentScopeMemberExprProc){
+  const auto expr = createNode(node, "clangStmt", w, src);
+  const auto isArrow = isTrueProp(node, "is_arrow", false);
+  const auto memberNode = findFirst(node, "clangDeclarationNameInfo[@class='Identifier']", src.ctxt);
+  const auto member = makeTokenNode(getContent(memberNode));
+  return expr + makeTokenNode(isArrow ? "->" : ".") + member;
+}
+
 DEFINE_STMTHANDLER(MemberExprProc) {
   const auto expr = createNode(node, "clangStmt", w, src);
   const auto member =
@@ -585,6 +593,7 @@ const ClangStmtHandlerType ClangStmtHandler("class",
         std::make_tuple("IntegerLiteral", emitIntegerLiteral),
         std::make_tuple("LabelStmt", LabelStmtProc),
         std::make_tuple("MemberExpr", MemberExprProc),
+	std::make_tuple("CXXDependentScopeMemberExpr", CXXDependentScopeMemberExprProc),
         std::make_tuple("ReturnStmt", ReturnStmtProc),
         std::make_tuple("StringLiteral", StringLiteralProc),
         std::make_tuple("SwitchStmt", SwitchStmtProc),
