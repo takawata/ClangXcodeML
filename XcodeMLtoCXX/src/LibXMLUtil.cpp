@@ -139,6 +139,8 @@ getContent(xmlNodePtr node) {
  */
 std::string
 getName(xmlNodePtr node) {
+  if(!node)
+      throw(std::runtime_error("Node is null"));
   return static_cast<XMLString>(node->name);
 }
 

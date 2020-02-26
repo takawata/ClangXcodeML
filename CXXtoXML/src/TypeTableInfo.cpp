@@ -707,7 +707,6 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
     case Type::DependentVector:
     case Type::DeducedTemplateSpecialization:
       rawname = registerOtherType(T);
-      std::cerr << "OTHER TYPE"<< T->getTypeClassName()<<std::endl;
       // XXX: temporary implementation
       Node = createNode(T, "otherType", nullptr);
       xmlNewProp(

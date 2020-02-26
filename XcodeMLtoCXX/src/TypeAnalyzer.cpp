@@ -161,17 +161,17 @@ getBases(xmlNodePtr node, xmlXPathContextPtr ctxt) {
   return result;
 }
 
-llvm::Optional<XcodeMl::ClassType::TemplateArgList>
+llvm::Optional<XcodeMl::TemplateArgList>
 getTemplateArgs(xmlNodePtr node, xmlXPathContextPtr ctxt) {
   using namespace XcodeMl;
-  using MaybeList = llvm::Optional<ClassType::TemplateArgList>;
+  using MaybeList = llvm::Optional<TemplateArgList>;
   const auto targsNode = findFirst(node, "templateArguments", ctxt);
   if (!targsNode) {
     return MaybeList();
   }
-  ClassType::TemplateArgList targs;
+  TemplateArgList targs;
   for (auto &&targNode : findNodes(targsNode, "*", ctxt)) {
-    ClassType::TemplateArg arg;
+    TemplateArg arg;
     if(strcmp((const char *) targNode->name, "typeName")==0){
       arg.argType = 0;
       arg.ident = getProp(targNode, "ref");
@@ -186,7 +186,6 @@ getTemplateArgs(xmlNodePtr node, xmlXPathContextPtr ctxt) {
   }
   return MaybeList(targs);
 }
-
 DEFINE_TA(classTypeProc) {
   XMLString elemName = xmlGetProp(node, BAD_CAST "type");
   const auto nameSpelling = getContent(findFirst(node, "name", ctxt));
@@ -228,6 +227,21 @@ DEFINE_TA(otherTypeProc){
   const auto dtident = getProp(node, "type");
   const auto name = getContent(findFirst(node, "name", ctxt));
   map[dtident] = XcodeMl::makeOtherType(dtident);
+}
+DEFINE_TA(DependentNameProc){
+  const auto dtident = getProp(node, "type");
+  const auto name = getContent(findFirst(node, "name", ctxt));
+  const auto dependtype = getProp(node, "dependtype");
+  const auto symbol = getProp(node, "symbol");
+  std::cerr <<dtident<<","<<dependtype<<","<<symbol<<std::endl;
+  map[dtident] = XcodeMl::makeDependentNameType(dtident, dependtype, symbol);
+}
+DEFINE_TA(TemplateSpecializationTypeProc){
+  const auto dtident = getProp(node, "type");
+  const auto name = getContent(findFirst(node, "name", ctxt));
+  const auto targs = getTemplateArgs(node, ctxt);
+  map[dtident] =
+    XcodeMl::makeTemplateSpecializationType(dtident, makeTokenNode(name),targs);
 }
 const std::vector<std::string> identicalFndDataTypeIdents = {
     "void",
@@ -287,7 +301,9 @@ const TypeAnalyzer XcodeMLTypeAnalyzer("TypeAnalyzer",
         std::make_tuple("classType", classTypeProc),
         std::make_tuple("enumType", enumTypeProc),
         std::make_tuple("TemplateTypeParmType", TemplateTypeParmTypeProc),
+	std::make_tuple("TemplateSpecializationType", TemplateSpecializationTypeProc),
         std::make_tuple("injectedClassNameType", classTypeProc),
+	std::make_tuple("DependentNameType", DependentNameProc),
 	std::make_tuple("otherType", otherTypeProc),
     });
 

@@ -125,7 +125,6 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
     const auto kind = DRE->getDecl()->getDeclKindName();
     newProp("declkind", kind);
     auto nameNode = makeNameNode(typetableinfo, DRE);
-
     const auto parent = DRE->getFoundDecl()->getDeclContext();
     assert(parent);
     xmlNewProp(nameNode,
@@ -134,7 +133,15 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
 
     xmlAddChild(curNode, nameNode);
   }
-
+  if (auto LE = dyn_cast<LambdaExpr>(S)){
+      for(const auto & cap: LE->captures()){
+          auto kind = cap.getCaptureKind();
+          std::string name;
+          std::string flag;
+          auto capnode = xmlNewNode(nullptr, BAD_CAST "Capture");
+          xmlAddChild(curNode, capnode);
+      }
+  }
   if (auto CL = dyn_cast<CharacterLiteral>(S)) {
     newProp(
         "hexadecimalNotation", unsignedToHexString(CL->getValue()).c_str());

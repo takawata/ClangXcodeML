@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include <string>
+#include <exception>
 #include <libxml/tree.h>
 #include <libxml/xpath.h>
 #include "llvm/ADT/Optional.h"
@@ -156,12 +157,24 @@ makeBases(const XcodeMl::ClassType &T, SourceInfo &src) {
       std::back_inserter(decls),
       [&src](ClassType::BaseClass base) {
         const auto T = src.typeTable.at(std::get<1>(base));
-        const auto classT = llvm::cast<ClassType>(T.get());
-        assert(classT);
+	std::cerr <<std::get<0>(base)<<","<<std::get<1>(base)<<std::endl;
+	CodeFragment desc;
+	if(const auto classT = llvm::dyn_cast<ClassType>(T.get())){
+	  desc = classT->getAsTemplateId(src.typeTable, src.nnsTable)
+	    .getValueOr(classT->name());
+	}else if(const auto TS = llvm::dyn_cast<TemplateSpecializationType>(T.get())){
+	  desc = TS->makeDeclaration(CXXCodeGen::makeVoidNode(),
+				     src.typeTable, src.nnsTable);
+	}else if(const auto TT = llvm::dyn_cast<TemplateTypeParm>(T.get())){
+	  desc = TT->makeDeclaration(CXXCodeGen::makeVoidNode(),
+				     src.typeTable, src.nnsTable);
+	}else{
+	  throw std::runtime_error("Cannot interpret base");
+	}
+
         return makeTokenNode(std::get<0>(base))
             + makeTokenNode(std::get<2>(base) ? "virtual" : "")
-            + classT->getAsTemplateId(src.typeTable, src.nnsTable)
-                  .getValueOr(classT->name());
+            + desc;
       });
   return decls.empty() ? CXXCodeGen::makeVoidNode()
                        : makeTokenNode(":") + CXXCodeGen::join(",", decls);
@@ -356,7 +369,6 @@ DEFINE_DECLHANDLER(FieldDeclProc) {
   const auto T = src.typeTable.at(dtident);
   auto name = CXXCodeGen::makeVoidNode();
   auto bits = CXXCodeGen::makeVoidNode();
-
   if (isTrueProp(node, "is_bit_field", false)) {
     const auto bitsNode = findFirst(node, "clangStmt", src.ctxt);
     bits = makeTokenNode(":") + w.walk(bitsNode, src);
@@ -368,7 +380,6 @@ DEFINE_DECLHANDLER(FieldDeclProc) {
     name = getUnqualIdFromNameNode(nameNode)->toString(
         src.typeTable, src.nnsTable);
   }
-
   return makeDecl(T, name, src.typeTable, src.nnsTable) + bits;
 }
 

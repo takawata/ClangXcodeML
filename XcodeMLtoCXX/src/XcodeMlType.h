@@ -57,6 +57,9 @@ enum class TypeKind {
   Class,
   /*! Template type parameter */
   TemplateTypeParm,
+  /*! Template Specialization */
+  TemplateSpecialization,
+  DependentName,
   /*! Other type */
   Other,
 };
@@ -417,13 +420,17 @@ enum class CXXClassKind {
   Struct,
   Union,
 };
+struct TemplateArg {
+  int argType;
+  DataTypeIdent ident;
+};
+using TemplateArgList = std::vector<TemplateArg>;
 
 /*!
  * \brief Converts `XcodeMl::CXXClassKind` to string (`"class"`,
  * `"struct"`, or `"union"`)
  */
 std::string getClassKey(CXXClassKind kind);
-
 /*! \brief Represents (C++-style) class. */
 class ClassType : public Type {
 public:
@@ -431,12 +438,7 @@ public:
   using MemberName = std::shared_ptr<UnqualId>;
   using Symbols = std::vector<std::tuple<MemberName, DataTypeIdent>>;
   using BaseClass = std::tuple<std::string, DataTypeIdent, bool>;
-  struct TemplateArg {
-    int argType;
-    DataTypeIdent ident;
-  };
   //using TemplateArg = DataTypeIdent;
-  using TemplateArgList = std::vector<TemplateArg>;
   ClassType(const DataTypeIdent &, const CodeFragment &, const Symbols &);
   ClassType(const DataTypeIdent &,
       CXXClassKind,
@@ -490,7 +492,33 @@ protected:
 private:
   llvm::Optional<CodeFragment> pSpelling;
 };
+class TemplateSpecializationType : public Type {
+  CodeFragment name;
+  llvm::Optional<TemplateArgList> templateArgs;
+public:
+  TemplateSpecializationType(const DataTypeIdent &, const CodeFragment &,const llvm::Optional<TemplateArgList> &);
+  ~TemplateSpecializationType() override = default;
+  CodeFragment makeDeclaration(
+      CodeFragment, const TypeTable &, const NnsTable &) override;
+  Type *clone() const override;
+  static bool classof(const Type *);
+  llvm::Optional<CodeFragment> getSpelling() const;
 
+};
+class DependentNameType: public Type {
+  const DataTypeIdent upper;
+  const DataTypeIdent member;
+
+public:
+  DependentNameType(const DataTypeIdent &, const DataTypeIdent &, const DataTypeIdent &);
+  ~DependentNameType() override = default;
+  CodeFragment makeDeclaration(
+      CodeFragment, const TypeTable &, const NnsTable &) override;
+  Type *clone() const override;
+  static bool classof(const Type *);
+protected:
+  DependentNameType(const DependentNameType &);
+};
 class OtherType : public Type {
 public:
   OtherType(const DataTypeIdent &);
@@ -528,13 +556,13 @@ TypeRef makeClassType(const DataTypeIdent &dtident,
     const CodeFragment &className,
     const std::vector<ClassType::BaseClass> &bases,
     const ClassType::Symbols &members,
-    const llvm::Optional<ClassType::TemplateArgList> &templateArgs);
+    const llvm::Optional<TemplateArgList> &templateArgs);
 TypeRef makeCXXUnionType(const DataTypeIdent &ident,
     const llvm::Optional<std::string> nnsident,
     const CodeFragment &unionName,
     const std::vector<ClassType::BaseClass> &bases,
     const ClassType::Symbols &members,
-    const llvm::Optional<ClassType::TemplateArgList> &templateArgs);
+    const llvm::Optional<TemplateArgList> &templateArgs);
 TypeRef makeFunctionType(const DataTypeIdent &ident,
     const DataTypeIdent &returnType,
     const std::vector<DataTypeIdent> &paramTypes);
@@ -543,12 +571,16 @@ TypeRef makeFunctionType(const DataTypeIdent &ident,
     const std::vector<DataTypeIdent> &paramTypes);
 TypeRef makeStructType(
     const DataTypeIdent &, const CodeFragment &, const Struct::MemberList &);
-TypeRef makeTemplateTypeParm(const DataTypeIdent &, const CodeFragment &);
+  TypeRef makeTemplateTypeParm(const DataTypeIdent &, const CodeFragment &);
 TypeRef makeVariadicFunctionType(const DataTypeIdent &ident,
     const DataTypeIdent &returnType,
     const std::vector<DataTypeIdent> &paramTypes);
+TypeRef makeTemplateSpecializationType(const DataTypeIdent& ,
+				       const CodeFragment &,
+				       const llvm::Optional<TemplateArgList> &
+				       );
 TypeRef makeOtherType(const DataTypeIdent &);
-
+TypeRef makeDependentNameType(const DataTypeIdent &, const DataTypeIdent &, const DataTypeIdent &);
 bool hasParen(const TypeRef &, const TypeTable &);
 }
 #endif /* !XCODEMLTYPE_H */

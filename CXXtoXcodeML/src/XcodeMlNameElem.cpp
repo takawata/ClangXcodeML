@@ -101,7 +101,6 @@ makeNameNodeForCXXMethodDecl(TypeTableInfo &TTI, const CXXMethodDecl *MD) {
   // (makeNameNodeForCXXOperator handles them)
   using NK = clang::DeclarationName::NameKind;
   assert(MD->getDeclName().getNameKind() != NK::CXXOperatorName);
-
   if (const auto ctor = dyn_cast<CXXConstructorDecl>(MD)) {
     return makeCtorNode(TTI, ctor);
   } else if (const auto dtor = dyn_cast<CXXDestructorDecl>(MD)) {

@@ -818,7 +818,63 @@ TemplateTypeParm::getSpelling() const {
   }
   return pSpelling;
 }
+TemplateSpecializationType::TemplateSpecializationType(const DataTypeIdent &ident, const CodeFragment &name_, const llvm::Optional<TemplateArgList> &Ta)
+    : Type(TypeKind::TemplateSpecialization, ident), name(name_),  templateArgs(Ta){
+}
 
+CodeFragment
+TemplateSpecializationType::makeDeclaration(
+    CodeFragment var, const TypeTable &typeTable, const NnsTable &nnsTable) {
+  std::vector<CodeFragment> targs;
+  for (auto &&dtident : *templateArgs) {
+    CodeFragment arg;
+    if(!dtident.argType){
+      const auto T = typeTable.at(dtident.ident);
+      arg = makeDecl(T, makeVoidNode(), typeTable, nnsTable);
+    }else{
+      arg = makeTokenNode(dtident.ident);
+    }
+    targs.push_back(arg);
+  }
+  const auto list = makeTokenNode("<") + join(",", targs) + makeTokenNode(">");
+
+  return name + list;
+}
+
+Type *
+TemplateSpecializationType::clone() const {
+  TemplateSpecializationType *copy = new TemplateSpecializationType(*this);
+  return copy;
+}
+
+bool
+TemplateSpecializationType::classof(const Type *T) {
+  return T->getKind() == TypeKind::TemplateSpecialization;
+}
+DependentNameType::DependentNameType(const DataTypeIdent &ident,const DataTypeIdent &u,const DataTypeIdent &m)
+  : Type(TypeKind::DependentName, ident),upper(u),member(m)
+{
+}
+DependentNameType::DependentNameType(const DependentNameType &dn) : Type(dn), upper(dn.upper),member(dn.member)
+{
+}
+
+CodeFragment
+DependentNameType::makeDeclaration(
+    CodeFragment var, const TypeTable &typeTable, const NnsTable &nnsTable) {
+  const auto T = typeTable.at(upper);
+  return makeTokenNode("typename ")+T->makeDeclaration(makeVoidNode(),typeTable,nnsTable)+makeTokenNode("::") + makeTokenNode(member) + var;
+}
+Type *
+DependentNameType::clone() const {
+  DependentNameType *copy = new DependentNameType(*this);
+  return copy;
+}
+
+
+OtherType::OtherType(const OtherType &other) : Type(other) {
+}
+ 
 OtherType::OtherType(const DataTypeIdent &ident)
     : Type(TypeKind::Other, ident) {
 }
@@ -838,9 +894,6 @@ OtherType::clone() const {
 bool
 OtherType::classof(const Type *T) {
   return T->getKind() == TypeKind::Other;
-}
-
-OtherType::OtherType(const OtherType &other) : Type(other) {
 }
 
 /*!
@@ -967,7 +1020,7 @@ makeClassType(const DataTypeIdent &dtident,
     const CodeFragment &className,
     const std::vector<ClassType::BaseClass> &bases,
     const ClassType::Symbols &members,
-    const llvm::Optional<ClassType::TemplateArgList> &targs) {
+    const llvm::Optional<TemplateArgList> &targs) {
   return std::make_shared<ClassType>(dtident,
       CXXClassKind::Class,
       nnsident,
@@ -983,7 +1036,7 @@ makeCXXUnionType(const DataTypeIdent &ident,
     const CodeFragment &unionName,
     const std::vector<ClassType::BaseClass> &bases,
     const ClassType::Symbols &members,
-    const llvm::Optional<ClassType::TemplateArgList> &targs) {
+    const llvm::Optional<TemplateArgList> &targs) {
   return std::make_shared<ClassType>(
       ident, CXXClassKind::Union, nnsident, unionName, bases, members, targs);
 }
@@ -992,12 +1045,20 @@ TypeRef
 makeTemplateTypeParm(const DataTypeIdent &dtident, const CodeFragment &name) {
   return std::make_shared<TemplateTypeParm>(dtident, name);
 }
-
+TypeRef
+makeTemplateSpecializationType(const DataTypeIdent &dtident, const CodeFragment
+			       &name, const llvm::Optional<TemplateArgList>&Ta)
+{
+  return std::make_shared<TemplateSpecializationType>(dtident, name, Ta);
+}
 TypeRef
 makeOtherType(const DataTypeIdent &ident) {
   return std::make_shared<OtherType>(ident);
 }
-
+TypeRef
+makeDependentNameType(const DataTypeIdent &ident, const DataTypeIdent &dependtype, const DataTypeIdent &member) {
+  return std::make_shared<DependentNameType>(ident, dependtype, member);
+}
 CodeFragment
 TypeRefToString(TypeRef type, const TypeTable &env, const NnsTable &nnsTable) {
   return makeDecl(type, makeTokenNode(""), env, nnsTable);
