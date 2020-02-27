@@ -99,6 +99,7 @@ public:
 	return fold(walkAll(node->children, args...));
       }
     }catch(std::exception &e){
+        std::cerr << "In " << name << ": walk(" << elemName << ")" << std::endl << e.what() << std::endl;
       std::cerr<< node->name <<node->line<<std::endl;
       throw ;
     }

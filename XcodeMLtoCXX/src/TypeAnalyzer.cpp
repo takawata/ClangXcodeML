@@ -233,7 +233,6 @@ DEFINE_TA(DependentNameProc){
   const auto name = getContent(findFirst(node, "name", ctxt));
   const auto dependtype = getProp(node, "dependtype");
   const auto symbol = getProp(node, "symbol");
-  std::cerr <<dtident<<","<<dependtype<<","<<symbol<<std::endl;
   map[dtident] = XcodeMl::makeDependentNameType(dtident, dependtype, symbol);
 }
 DEFINE_TA(TemplateSpecializationTypeProc){
