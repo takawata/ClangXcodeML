@@ -411,7 +411,12 @@ DEFINE_DECLHANDLER(FunctionProc) {
   return wrapWithLangLink(acc, node, src);
 }
 
-DEFINE_DECLHANDLER(FunctionTemplateProc) {
+static XcodeMl::CodeFragment
+FunctionTemplateProcCommon(xmlNodePtr node,
+    const CodeBuilder &w,
+    SourceInfo &src,
+    const char *bodyelement)
+{
   if (const auto typeTableNode =
           findFirst(node, "xcodemlTypeTable", src.ctxt)) {
     src.typeTable = expandTypeTable(src.typeTable, typeTableNode, src.ctxt);
@@ -421,7 +426,7 @@ DEFINE_DECLHANDLER(FunctionTemplateProc) {
   }
   const auto paramNodes =
       findNodes(node, "clangDecl[@class='TemplateTypeParm' or @class ='NonTypeTemplateParm']", src.ctxt);
-  const auto body = findFirst(node, "clangDecl[@class='Function']", src.ctxt);
+  const auto body = findFirst(node, bodyelement, src.ctxt);
 
   std::vector<CXXCodeGen::StringTreeRef> params;
   for (auto &&paramNode : paramNodes) {
@@ -430,6 +435,15 @@ DEFINE_DECLHANDLER(FunctionTemplateProc) {
 
   return makeTokenNode("template") + makeTokenNode("<") + join(",", params)
       + makeTokenNode(">") + w.walk(body, src);
+
+}
+
+DEFINE_DECLHANDLER(FunctionTemplateInClassProc){
+  return FunctionTemplateProcCommon( node, w, src, "clangDecl[@class='CXXMethod']");
+}
+
+DEFINE_DECLHANDLER(FunctionTemplateProc) {
+  return FunctionTemplateProcCommon( node, w, src, "clangDecl[@class='Function']");
 }
 
 DEFINE_DECLHANDLER(LinkageSpecProc) {
@@ -631,7 +645,7 @@ const ClangDeclHandlerType ClangDeclHandlerInClass("class",
         std::make_tuple("CXXDestructor", emitInlineMemberFunction),
         std::make_tuple("CXXRecord", CXXRecordProc),
         std::make_tuple("Enum", EnumProc),
-        std::make_tuple("FunctionTemplate", FunctionTemplateProc),
+        std::make_tuple("FunctionTemplate", FunctionTemplateInClassProc),
         std::make_tuple("EnumConstant", EnumConstantProc),
         std::make_tuple("Field", FieldDeclProc),
         std::make_tuple("Friend", FriendDeclProc),

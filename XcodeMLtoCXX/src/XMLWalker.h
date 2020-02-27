@@ -88,8 +88,14 @@ public:
    * \pre \c node is an XML element node.
    */
   ReturnT
-  walk(xmlNodePtr node, T... args) const {
-    assert(node && node->type == XML_ELEMENT_NODE);
+  walk(xmlNodePtr node, T... args) const
+  {
+    if(!node){
+      throw std::runtime_error("null node passed");
+    }else if(node->type != XML_ELEMENT_NODE){
+      std::cerr <<"Node Type Invalid"<<node->name<<node->type<<std::endl;
+      throw std::runtime_error("Node Type Invalid");
+    }
     XMLString elemName = node->name;
     auto iter = map.find(elemName);
     try{
@@ -178,7 +184,12 @@ public:
 
   void
   walk(xmlNodePtr node, T... args) const {
-    assert(node && node->type == XML_ELEMENT_NODE);
+    if(!node){
+      throw std::runtime_error("null node passed");
+    }else if(node->type != XML_ELEMENT_NODE){
+      std::cerr <<"Node Type Invalid"<<node->name<<node->type<<std::endl;
+      throw std::runtime_error("Node Type Invalid");
+    }
     XMLString elemName = node->name;
     auto iter = map.find(elemName);
     if (iter != map.end()) {
