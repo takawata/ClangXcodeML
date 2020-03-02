@@ -377,6 +377,7 @@ XMLRecursiveASTVisitor::PreVisitDecl(Decl *D) {
     newBoolProp("is_static_local", VD->isStaticLocal());
     newBoolProp("is_static_data_member", VD->isStaticDataMember());
     newBoolProp("is_out_of_line", VD->isOutOfLine());
+    newBoolProp("is_constexpr", VD->isConstexpr());
   }
 
   if (auto FD = dyn_cast<FieldDecl>(D)) {
