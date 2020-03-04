@@ -60,6 +60,7 @@ enum class TypeKind {
   /*! Template Specialization */
   TemplateSpecialization,
   DependentName,
+  DeclType,
   /*! Other type */
   Other,
 };
@@ -519,6 +520,20 @@ public:
 protected:
   DependentNameType(const DependentNameType &);
 };
+
+class DeclType : public Type{
+public:
+    DeclType(const DataTypeIdent &);
+    ~DeclType() override = default;
+  CodeFragment makeDeclaration(
+      CodeFragment, const TypeTable &, const NnsTable &) override;
+  Type *clone() const override;
+  static bool classof(const Type *);
+
+protected:
+  DeclType(const DeclType &);
+
+};
 class OtherType : public Type {
 public:
   OtherType(const DataTypeIdent &);
@@ -580,6 +595,7 @@ TypeRef makeTemplateSpecializationType(const DataTypeIdent& ,
 				       const llvm::Optional<TemplateArgList> &
 				       );
 TypeRef makeOtherType(const DataTypeIdent &);
+TypeRef makeDeclType(const DataTypeIdent &);
 TypeRef makeDependentNameType(const DataTypeIdent &, const DataTypeIdent &, const DataTypeIdent &);
 bool hasParen(const TypeRef &, const TypeTable &);
 }

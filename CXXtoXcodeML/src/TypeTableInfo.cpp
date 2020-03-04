@@ -614,12 +614,21 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
       Node = createNode(T, "typedefType", nullptr);
       pushType(T, Node);
       break;
-
+    case Type::Decltype:{
+      rawname = registerOtherType(T);
+      Node = createNode(T, "decltypeType", nullptr);
+      auto DT = dyn_cast<DecltypeType>(T);
+      auto UT = DT->getUnderlyingType();
+      auto E = DT->getUnderlyingExpr();
+      UT->dump();
+      E->dump();
+      pushType(T,Node);
+      break;
+    }
     case Type::Adjusted:
     case Type::Decayed:
     case Type::TypeOfExpr:
     case Type::TypeOf:
-    case Type::Decltype:
     case Type::UnaryTransform:
       rawname = registerOtherType(T);
       // XXX: temporary implementation

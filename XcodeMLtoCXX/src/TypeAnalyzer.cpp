@@ -228,6 +228,13 @@ DEFINE_TA(otherTypeProc){
   const auto name = getContent(findFirst(node, "name", ctxt));
   map[dtident] = XcodeMl::makeOtherType(dtident);
 }
+
+DEFINE_TA(declTypeProc){
+  const auto dtident = getProp(node, "type");
+  const auto name = getContent(findFirst(node, "name", ctxt));
+  map[dtident] = XcodeMl::makeDeclType(dtident);
+}
+
 DEFINE_TA(DependentNameProc){
   const auto dtident = getProp(node, "type");
   const auto name = getContent(findFirst(node, "name", ctxt));
@@ -303,6 +310,7 @@ const TypeAnalyzer XcodeMLTypeAnalyzer("TypeAnalyzer",
 	std::make_tuple("TemplateSpecializationType", TemplateSpecializationTypeProc),
         std::make_tuple("injectedClassNameType", classTypeProc),
 	std::make_tuple("DependentNameType", DependentNameProc),
+	std::make_tuple("decltypeType", declTypeProc),
 	std::make_tuple("otherType", otherTypeProc),
     });
 

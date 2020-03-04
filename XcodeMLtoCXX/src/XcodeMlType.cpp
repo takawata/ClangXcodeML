@@ -307,8 +307,9 @@ ParamList::makeDeclaration(const std::vector<CodeFragment> &paramNames,
     decls.push_back(makeDecl(ithType, paramNames[i], typeTable, nnsTable));
   }
   return CXXCodeGen::join(",", decls)
-      + (isVariadic() ? makeTokenNode(",") + makeTokenNode("...")
-                      : makeVoidNode());
+    + (isVariadic() ?
+       (decls.size() ? makeTokenNode(",") :makeVoidNode()) +
+       makeTokenNode("..."): makeVoidNode());
 }
 
 Function::Function(DataTypeIdent ident,
@@ -871,6 +872,10 @@ DependentNameType::clone() const {
   return copy;
 }
 
+bool
+DependentNameType::classof(const Type *T) {
+  return T->getKind() == TypeKind::DependentName;
+}
 
 OtherType::OtherType(const OtherType &other) : Type(other) {
 }
@@ -894,6 +899,30 @@ OtherType::clone() const {
 bool
 OtherType::classof(const Type *T) {
   return T->getKind() == TypeKind::Other;
+}
+
+DeclType::DeclType(const DeclType &declt) : Type(declt) {
+}
+
+DeclType::DeclType(const DataTypeIdent &ident)
+    : Type(TypeKind::DeclType, ident) {
+}
+
+CodeFragment
+DeclType::makeDeclaration(
+    CodeFragment var, const TypeTable &, const NnsTable &) {
+  return makeTokenNode("decltype (") + var + makeTokenNode(")");
+}
+
+Type *
+DeclType::clone() const {
+  DeclType *copy = new DeclType(*this);
+  return copy;
+}
+
+bool
+DeclType::classof(const Type *T) {
+  return T->getKind() == TypeKind::DeclType;
 }
 
 /*!
@@ -1054,6 +1083,10 @@ makeTemplateSpecializationType(const DataTypeIdent &dtident, const CodeFragment
 TypeRef
 makeOtherType(const DataTypeIdent &ident) {
   return std::make_shared<OtherType>(ident);
+}
+TypeRef
+makeDeclType(const DataTypeIdent &ident){
+  return std::make_shared<DeclType>(ident);
 }
 TypeRef
 makeDependentNameType(const DataTypeIdent &ident, const DataTypeIdent &dependtype, const DataTypeIdent &member) {

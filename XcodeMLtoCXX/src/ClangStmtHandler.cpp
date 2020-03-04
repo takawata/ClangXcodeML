@@ -25,6 +25,7 @@
 #include "CodeBuilder.h"
 #include "ClangStmtHandler.h"
 #include "XcodeMlUtil.h"
+#include "ClangNestedNameSpecHandler.h"
 
 namespace cxxgen = CXXCodeGen;
 
@@ -371,6 +372,16 @@ DEFINE_STMTHANDLER(DeclRefExprProc) {
 
   return name.toString(src.typeTable, src.nnsTable);
 }
+DEFINE_STMTHANDLER(DependentScopeDeclRefExprProc) {
+  const auto memberNode = findFirst(node, "clangDeclarationNameInfo[@class='Identifier']", src.ctxt);
+  const auto nsnode = findFirst(node, "clangNestedNameSpecifier",
+				src.ctxt);
+  const auto member = makeTokenNode(getContent(memberNode));
+
+  auto ns =  ClangNestedNameSpecHandler.walk(nsnode, src);
+
+  return ns+member;
+}
 
 DEFINE_STMTHANDLER(DefaultStmtProc) {
   const auto body = createNode(node, "clangStmt", w, src);
@@ -594,6 +605,7 @@ const ClangStmtHandlerType ClangStmtHandler("class",
         std::make_tuple("LabelStmt", LabelStmtProc),
         std::make_tuple("MemberExpr", MemberExprProc),
 	std::make_tuple("CXXDependentScopeMemberExpr", CXXDependentScopeMemberExprProc),
+	std::make_tuple("DependentScopeDeclRefExpr", DependentScopeDeclRefExprProc),
         std::make_tuple("ReturnStmt", ReturnStmtProc),
         std::make_tuple("StringLiteral", StringLiteralProc),
         std::make_tuple("SwitchStmt", SwitchStmtProc),

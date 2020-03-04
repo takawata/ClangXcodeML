@@ -168,6 +168,10 @@ makeBases(const XcodeMl::ClassType &T, SourceInfo &src) {
 	}else if(const auto TT = llvm::dyn_cast<TemplateTypeParm>(T.get())){
 	  desc = TT->makeDeclaration(CXXCodeGen::makeVoidNode(),
 				     src.typeTable, src.nnsTable);
+	}else if(const auto DN = llvm::dyn_cast<DependentNameType>(T.get())){
+	  desc = CXXCodeGen::makeTokenNode("/**/");
+	}else if(const auto DT = llvm::dyn_cast<DeclType>(T.get())){
+	  desc = CXXCodeGen::makeTokenNode("/**/");
 	}else{
 	  throw std::runtime_error("Cannot interpret base");
 	}
@@ -439,7 +443,7 @@ FunctionTemplateProcCommon(xmlNodePtr node,
 }
 
 DEFINE_DECLHANDLER(FunctionTemplateInClassProc){
-  return FunctionTemplateProcCommon( node, w, src, "clangDecl[@class='CXXMethod']");
+  return FunctionTemplateProcCommon( node, w, src, "clangDecl[@class='CXXMethod' or 'CXXConstructor']");
 }
 
 DEFINE_DECLHANDLER(FunctionTemplateProc) {
