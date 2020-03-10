@@ -106,7 +106,7 @@ public:
       }
     }catch(std::exception &e){
         std::cerr << "In " << name << ": walk(" << elemName << ")" << std::endl << e.what() << std::endl;
-      std::cerr<< node->name <<node->line<<std::endl;
+	std::cerr<< node->name <<xmlGetLineNo(node)<<std::endl;
       throw ;
     }
   }

@@ -221,6 +221,7 @@ DEFINE_TA(enumTypeProc) {
 DEFINE_TA(TemplateTypeParmTypeProc) {
   const auto dtident = getProp(node, "type");
   const auto name = getContent(findFirst(node, "name", ctxt));
+  std::cerr <<"Processing"<<dtident<<","<<name<<std::endl;
   map[dtident] = XcodeMl::makeTemplateTypeParm(dtident, makeTokenNode(name));
 }
 DEFINE_TA(otherTypeProc){

@@ -28,7 +28,7 @@ main(int argc, char **argv) {
     return 0;
   }
   std::string filename(argv[1]);
-  xmlDocPtr doc = xmlParseFile(filename.c_str());
+  xmlDocPtr doc = xmlReadFile(filename.c_str(), NULL, XML_PARSE_BIG_LINES);
   xmlNodePtr root = xmlDocGetRootElement(doc);
   xmlXPathContextPtr ctxt = xmlXPathNewContext(doc);
   std::stringstream ss;

@@ -415,11 +415,7 @@ DEFINE_DECLHANDLER(FunctionProc) {
   return wrapWithLangLink(acc, node, src);
 }
 
-static XcodeMl::CodeFragment
-FunctionTemplateProcCommon(xmlNodePtr node,
-    const CodeBuilder &w,
-    SourceInfo &src,
-    const char *bodyelement)
+DEFINE_DECLHANDLER(FunctionTemplateProc)
 {
   if (const auto typeTableNode =
           findFirst(node, "xcodemlTypeTable", src.ctxt)) {
@@ -430,8 +426,12 @@ FunctionTemplateProcCommon(xmlNodePtr node,
   }
   const auto paramNodes =
       findNodes(node, "clangDecl[@class='TemplateTypeParm' or @class ='NonTypeTemplateParm']", src.ctxt);
-  const auto body = findFirst(node, bodyelement, src.ctxt);
-
+  const auto body = findFirst(node,
+			      "clangDecl[@class='CXXMethod' or 'CXXConstructor' or 'Function']"
+			      , src.ctxt);
+  if(!body){
+    throw(std::runtime_error("Body is Null"));
+  }
   std::vector<CXXCodeGen::StringTreeRef> params;
   for (auto &&paramNode : paramNodes) {
     params.push_back(w.walk(paramNode, src));
@@ -440,14 +440,6 @@ FunctionTemplateProcCommon(xmlNodePtr node,
   return makeTokenNode("template") + makeTokenNode("<") + join(",", params)
       + makeTokenNode(">") + w.walk(body, src);
 
-}
-
-DEFINE_DECLHANDLER(FunctionTemplateInClassProc){
-  return FunctionTemplateProcCommon( node, w, src, "clangDecl[@class='CXXMethod' or 'CXXConstructor']");
-}
-
-DEFINE_DECLHANDLER(FunctionTemplateProc) {
-  return FunctionTemplateProcCommon( node, w, src, "clangDecl[@class='Function']");
 }
 
 DEFINE_DECLHANDLER(LinkageSpecProc) {
@@ -490,6 +482,16 @@ DEFINE_DECLHANDLER(RecordProc) {
   const auto decls = createNodes(node, "clangDecl", w, src);
   return makeTokenNode("struct") + tagName
       + wrapWithBrace(foldWithSemicolon(decls));
+}
+
+DEFINE_DECLHANDLER(TemplateTemplateParmProc) {
+  //Temporally impl.
+  if (const auto typeTableNode =
+          findFirst(node, "xcodemlTypeTable", src.ctxt)) {
+    src.typeTable = expandTypeTable(src.typeTable, typeTableNode, src.ctxt);
+  }
+  const auto head = makeTemplateHead(node, w, src);
+  return makeTokenNode("template <") + head +  makeTokenNode(">");
 }
 
 DEFINE_DECLHANDLER(TemplateTypeParmProc) {
@@ -644,19 +646,24 @@ const ClangDeclHandlerType ClangDeclHandlerInClass("class",
     callCodeBuilder,
     {
         std::make_tuple("ClassTemplate", ClassTemplateProc),
+        std::make_tuple(
+            "ClassTemplateSpecialization", ClassTemplateSpecializationProc),
+        std::make_tuple("ClassTemplatePartialSpecialization",
+            ClassTemplatePartialSpecializationProc),
         std::make_tuple("CXXMethod", emitInlineMemberFunction),
         std::make_tuple("CXXConstructor", emitInlineMemberFunction),
         std::make_tuple("CXXConversion", emitInlineMemberFunction),
         std::make_tuple("CXXDestructor", emitInlineMemberFunction),
         std::make_tuple("CXXRecord", CXXRecordProc),
         std::make_tuple("Enum", EnumProc),
-        std::make_tuple("FunctionTemplate", FunctionTemplateInClassProc),
+        std::make_tuple("FunctionTemplate", FunctionTemplateProc),
         std::make_tuple("EnumConstant", EnumConstantProc),
         std::make_tuple("Field", FieldDeclProc),
         std::make_tuple("Friend", FriendDeclProc),
         std::make_tuple("Using", UsingProc),
         std::make_tuple("TemplateTypeParm", TemplateTypeParmProc),
 	std::make_tuple("NonTypeTemplateParm", NonTypeTemplateParmProc),
+	std::make_tuple("TemplateTemplateParm", TemplateTemplateParmProc),
         std::make_tuple("TypeAlias", TypeAliasProc),
         std::make_tuple("Typedef", TypedefProc),
 	std::make_tuple("TypeAliasTemplate", TypeAliasTemplateProc),
@@ -687,6 +694,7 @@ const ClangDeclHandlerType ClangDeclHandler("class",
         std::make_tuple("Record", RecordProc),
         std::make_tuple("TemplateTypeParm", TemplateTypeParmProc),
 	std::make_tuple("NonTypeTemplateParm", NonTypeTemplateParmProc),
+	std::make_tuple("TemplateTemplateParm", TemplateTemplateParmProc),
         std::make_tuple("TranslationUnit", TranslationUnitProc),
         std::make_tuple("TypeAlias", TypeAliasProc),
 	std::make_tuple("TypeAliasTemplate", TypeAliasTemplateProc),

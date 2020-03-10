@@ -50,9 +50,9 @@ createNode(xmlNodePtr node,
   const auto targetNode = findFirst(node, xpath, src.ctxt);
   if (!targetNode) {
     std::cerr << "In createNode" << std::endl
-	      << "Line" << node->line << std::endl
+	      << "Line" << xmlGetLineNo(node) << std::endl
               << "not found: '" << xpath << "'" << std::endl;
-    std::abort();
+    throw(std::runtime_error("Node CreateFailed"));
   }
   return w.walk(targetNode, src);
 }
@@ -113,7 +113,7 @@ DEFINE_STMTHANDLER(BinaryOperatorProc) {
   const auto opName = getProp(node, "binOpName");
   const auto opSpelling = XcodeMl::OperatorNameToSpelling(opName);
   if (!opSpelling.hasValue()) {
-    std::cerr << "Unknown operator name: '" << opName << "'" << std::endl;
+    std::cerr << "Unknown Binary operator name: '" << opName << "'" << xmlGetLineNo(node)<< std::endl;
     std::abort();
   }
   return wrapWithParen(lhs + makeTokenNode(*opSpelling) + rhs);
@@ -209,11 +209,12 @@ DEFINE_STMTHANDLER(CXXCtorExprProc) {
     return w.walk(materializeExpr, src);
   }
   auto child = findFirst(node, "clangStmt", src.ctxt);
-  if (getType(child) == getType(node)
+  if (child && getType(child) == getType(node)
       && !findFirst(node, "clangStmt[position() > 1]", src.ctxt)) {
     // this is a copy (or move) constructor: omit this
     return w.walk(child, src);
   }
+
   const auto T = makeDecl(src.typeTable.at(getType(node)),
       CXXCodeGen::makeVoidNode(),
       src.typeTable,
@@ -492,11 +493,21 @@ DEFINE_STMTHANDLER(LabelStmtProc) {
 }
 
 DEFINE_STMTHANDLER(CXXDependentScopeMemberExprProc){
-  const auto expr = createNode(node, "clangStmt", w, src);
-  const auto isArrow = isTrueProp(node, "is_arrow", false);
-  const auto memberNode = findFirst(node, "clangDeclarationNameInfo[@class='Identifier']", src.ctxt);
-  const auto member = makeTokenNode(getContent(memberNode));
-  return expr + makeTokenNode(isArrow ? "->" : ".") + member;
+  bool isArrow = false;
+  auto expr = CXXCodeGen::makeVoidNode();
+  if(findFirst(node, "clangStmt", src.ctxt)){
+    expr = expr +  createNode(node, "clangStmt", w, src);
+    isArrow = isTrueProp(node, "is_arrow", false);
+
+  }else {
+    const auto nsnode = findFirst(node, "clangNestedNameSpecifier",
+				  src.ctxt);
+    expr =  expr + ClangNestedNameSpecHandler.walk(nsnode, src);
+  }
+    const auto memberNode = findFirst(node, "clangDeclarationNameInfo[@class='Identifier']", src.ctxt);
+    const auto member = makeTokenNode(getContent(memberNode));
+
+    return expr + makeTokenNode(isArrow ? "->" : ".") + member;
 }
 
 DEFINE_STMTHANDLER(MemberExprProc) {
