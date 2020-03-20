@@ -6,6 +6,7 @@
 #include <string>
 #include <type_traits>
 #include <unistd.h>
+#include <iostream>
 
 #include "CXXtoXML.h"
 #include "XMLRecursiveASTVisitor.h"
@@ -114,7 +115,6 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
     const auto MD = ME->getMemberDecl();
     auto memberName = makeNameNode(typetableinfo, MD);
     xmlAddChild(curNode, memberName);
-
     if (const auto DRE = dyn_cast<clang::DeclRefExpr>(ME->getBase())) {
       const auto DN = DRE->getNameInfo().getName();
       newBoolProp("is_access_to_anon_record", DN.isEmpty());
@@ -123,6 +123,8 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
 
   if (auto DRE = dyn_cast<DeclRefExpr>(S)) {
     const auto kind = DRE->getDecl()->getDeclKindName();
+    const auto RefedDecl = DRE->getDecl();
+    //DRE->getDecl()->dump();
     newProp("declkind", kind);
     auto nameNode = makeNameNode(typetableinfo, DRE);
     const auto parent = DRE->getFoundDecl()->getDeclContext();
@@ -169,7 +171,6 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
         FL->getLocation(), buffer, CXT.getSourceManager(), CXT.getLangOpts());
     newProp("token", spelling.str().c_str());
   }
-
   if (auto SL = dyn_cast<clang::StringLiteral>(S)) {
     StringRef Data = SL->getString();
     std::string literalAsString;

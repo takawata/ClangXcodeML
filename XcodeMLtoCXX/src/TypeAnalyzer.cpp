@@ -21,7 +21,10 @@
 #include "XcodeMlType.h"
 #include "XcodeMlUtil.h"
 #include "XcodeMlTypeTable.h"
+#include "AttrProc.h"
 #include "TypeAnalyzer.h"
+#include "CodeBuilder.h"
+#include "ClangDeclHandler.h"
 
 using TypeAnalyzer = XMLWalker<void, xmlXPathContextPtr, XcodeMl::TypeTable &>;
 
@@ -178,9 +181,19 @@ getTemplateArgs(xmlNodePtr node, xmlXPathContextPtr ctxt) {
     }else if(strcmp((const char *)targNode->name, "integral")==0){
       arg.argType = 1;
       arg.ident = getProp(targNode, "value");
-    }else {
+    }else if(strcmp((const char *)targNode->name, "template")==0){
       arg.argType = 1;
-      arg.ident = "Other";
+      arg.ident = getProp(targNode, "name") ; 
+    }else if(strcmp((const char *)targNode->name, "pack") == 0){
+      arg.argType = 1;
+      arg.ident = "...";
+    }else if(strcmp((const char *)targNode->name, "expression")== 0){
+      arg.argType = 1;
+      arg.ident = "expression" ;
+    }else{
+      arg.argType = 1;
+      arg.ident = std::string("/*XXX") + (const char*)targNode->name
+	+ std::string("*/") ;
     }
     targs.push_back(arg);
   }
@@ -193,6 +206,7 @@ DEFINE_TA(classTypeProc) {
                                               : makeTokenNode(nameSpelling);
   const auto bases = getBases(node, ctxt);
   const auto targs = getTemplateArgs(node, ctxt);
+  const auto template_inst = xmlGetProp(node, BAD_CAST "is_template_instantiation");
   XcodeMl::ClassType::Symbols symbols;
   const auto ids = findNodes(node, "symbols/id", ctxt);
   for (auto &idElem : ids) {

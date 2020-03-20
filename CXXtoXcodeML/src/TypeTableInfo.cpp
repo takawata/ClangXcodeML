@@ -349,6 +349,14 @@ commonSetUpForRecordDecl(
 
   if (const auto CTS = dyn_cast<ClassTemplateSpecializationDecl>(RD)) {
     xmlNewProp(node, BAD_CAST "is_template_instantiation", BAD_CAST "1");
+    auto ST = CTS->getSpecializedTemplate();
+    auto IT = ST->getInjectedClassNameSpecialization();
+#if 0    
+    auto TST = dyn_cast<TemplateSpecializationType>(IT);
+    auto TN = TST->getTemplateName();
+#endif    
+    xmlNewProp(node, BAD_CAST "instantiatate_from",
+               BAD_CAST TTI.getTypeName(IT).c_str());
     const auto templArgs = xmlNewNode(nullptr, BAD_CAST "templateArguments");
     for (auto &&arg : CTS->getTemplateArgs().asArray()) {
       switch (arg.getKind()) {
@@ -378,9 +386,12 @@ commonSetUpForRecordDecl(
         xmlAddChild(templArgs, integNode);
         }
         break;
-      case TemplateArgument::Template:
+      case TemplateArgument::Template:{
+        auto tn = arg.getAsTemplate();
+        tn.dump();
         xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "template"));
         break;
+      }
       case TemplateArgument::TemplateExpansion:
         xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "template_expansion"));
         break;
@@ -618,10 +629,10 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
       rawname = registerOtherType(T);
       Node = createNode(T, "decltypeType", nullptr);
       auto DT = dyn_cast<DecltypeType>(T);
-      auto UT = DT->getUnderlyingType();
-      auto E = DT->getUnderlyingExpr();
-      UT->dump();
-      E->dump();
+      //auto UT = DT->getUnderlyingType();
+      //auto E = DT->getUnderlyingExpr();
+      //UT->dump();
+      //E->dump();
       pushType(T,Node);
       break;
     }
@@ -728,13 +739,15 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
     }
     case Type::TemplateSpecialization:{
       rawname = registerTemplateSpecializationType(T);
-      std::cerr << "OTHER TYPE1"<< T->getTypeClassName()<<std::endl;
+      //std::cerr << "OTHER TYPE1"<< T->getTypeClassName()<<std::endl;
       // XXX: temporary implementation
       Node = createNode(T, "TemplateSpecializationType", nullptr);
       xmlNewProp(
                  Node, BAD_CAST "clang_type_class", BAD_CAST(T->getTypeClassName()));
       auto TST = cast<TemplateSpecializationType>(T);
       auto TD = TST->getTemplateName().getUnderlying().getAsTemplateDecl();
+
+      //TST->dump();
       xmlNewChild(Node,
                   nullptr,
                   BAD_CAST "name",
@@ -768,15 +781,28 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
             xmlAddChild(templArgs, integNode);
           }
           break;
-        case TemplateArgument::Template:
-          xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "template"));
+        case TemplateArgument::Template:{
+          const auto tnode = xmlNewNode(nullptr, BAD_CAST "template");
+          auto tn = arg.getAsTemplate();
+          auto tnt = tn.getAsTemplateDecl();
+          tnt->dump();
+          //std::cout <<getTypeName(tn) <<std:endl;
+          if(tnt != nullptr){
+            xmlNewProp(tnode,
+                       BAD_CAST "name",
+                       BAD_CAST tnt->getName().str().c_str());
+          }
+          xmlAddChild(templArgs, tnode);
+        }
           break;
         case TemplateArgument::TemplateExpansion:
           xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "template_expansion"));
           break;
-        case TemplateArgument::Expression:
+        case TemplateArgument::Expression:{
+          
           xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "expression"));
           break;
+        }
         case TemplateArgument::Pack:
           xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "pack"));
           break;
