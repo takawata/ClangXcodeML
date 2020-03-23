@@ -3,7 +3,6 @@
 #include <map>
 #include <string>
 #include <vector>
-#include <libxml/tree.h>
 #include "llvm/ADT/Optional.h"
 #include "StringTree.h"
 #include "XcodeMlNns.h"
@@ -238,7 +237,8 @@ MemberPointer::makeDeclaration(
   const auto classTypeName = makeDecl(
       typeTable.at(record), CXXCodeGen::makeVoidNode(), typeTable, nnsTable);
   const auto innerDecl =
-      wrapWithXcodeMlIdentity(classTypeName) + makeTokenNode("::*") + var;
+    makeTokenNode("(")+wrapWithXcodeMlIdentity(classTypeName)
+    + makeTokenNode("::*") + var + makeTokenNode(")");
 
   const auto pointeeT = typeTable.at(pointee);
   return makeDecl(pointeeT, innerDecl, typeTable, nnsTable);
@@ -649,7 +649,8 @@ ClassType::ClassType(const DataTypeIdent &ident,
       name_(className),
       bases_(),
       classScopeSymbols(symbols),
-      templateArgs() {
+      templateArgs()
+{
 }
 
 ClassType::ClassType(const DataTypeIdent &ident,
@@ -658,14 +659,18 @@ ClassType::ClassType(const DataTypeIdent &ident,
     const CodeFragment &className,
     const std::vector<BaseClass> &b,
     const ClassType::Symbols &symbols,
-    const llvm::Optional<TemplateArgList> &argList)
+		     const llvm::Optional<TemplateArgList> &argList,
+		     uintptr_t n
+		     )
     : Type(TypeKind::Class, ident),
       classKind_(kind),
       nnsident(nns),
       name_(className),
       bases_(b),
       classScopeSymbols(symbols),
-      templateArgs(argList) {
+      templateArgs(argList),node(n)
+      
+{
 }
 
 ClassType::ClassType(
@@ -675,7 +680,8 @@ ClassType::ClassType(
       name_(),
       bases_(),
       classScopeSymbols(symbols),
-      templateArgs() {
+      templateArgs(),node(0)
+{
 }
 
 std::string
@@ -1049,14 +1055,18 @@ makeClassType(const DataTypeIdent &dtident,
     const CodeFragment &className,
     const std::vector<ClassType::BaseClass> &bases,
     const ClassType::Symbols &members,
-    const llvm::Optional<TemplateArgList> &targs) {
+	      const llvm::Optional<TemplateArgList> &targs,
+	      const xmlNodePtr node) {
+
   return std::make_shared<ClassType>(dtident,
       CXXClassKind::Class,
       nnsident,
       className,
       bases,
       members,
-      targs);
+      targs,
+      reinterpret_cast<uintptr_t>(node)
+     );
 }
 
 TypeRef
@@ -1065,9 +1075,11 @@ makeCXXUnionType(const DataTypeIdent &ident,
     const CodeFragment &unionName,
     const std::vector<ClassType::BaseClass> &bases,
     const ClassType::Symbols &members,
-    const llvm::Optional<TemplateArgList> &targs) {
+    const llvm::Optional<TemplateArgList> &targs,
+    const xmlNodePtr node) {
   return std::make_shared<ClassType>(
-      ident, CXXClassKind::Union, nnsident, unionName, bases, members, targs);
+	 ident, CXXClassKind::Union, nnsident, unionName, bases, members,
+	 targs, reinterpret_cast<uintptr_t>(node));
 }
 
 TypeRef

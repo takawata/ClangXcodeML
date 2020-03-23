@@ -219,10 +219,10 @@ DEFINE_TA(classTypeProc) {
   const auto classKind = getProp(node, "cxx_class_kind");
   if (classKind == "union") {
     map[elemName] = XcodeMl::makeCXXUnionType(
-        elemName, nnsident, className, bases, symbols, targs);
+					      elemName, nnsident, className, bases, symbols, targs, node);
   } else {
     map[elemName] = XcodeMl::makeClassType(
-        elemName, nnsident, className, bases, symbols, targs);
+					   elemName, nnsident, className, bases, symbols, targs, node);
   }
 }
 
@@ -235,7 +235,7 @@ DEFINE_TA(enumTypeProc) {
 DEFINE_TA(TemplateTypeParmTypeProc) {
   const auto dtident = getProp(node, "type");
   const auto name = getContent(findFirst(node, "name", ctxt));
-  std::cerr <<"Processing"<<dtident<<","<<name<<std::endl;
+  //std::cerr <<"Processing"<<dtident<<","<<name<<std::endl;
   map[dtident] = XcodeMl::makeTemplateTypeParm(dtident, makeTokenNode(name));
 }
 DEFINE_TA(otherTypeProc){

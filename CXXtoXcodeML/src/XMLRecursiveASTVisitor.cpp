@@ -432,6 +432,7 @@ XMLRecursiveASTVisitor::PreVisitDecl(Decl *D) {
     auto nnsTable = addChild("xcodemlNnsTable");
     nnstableinfo.pushNnsTableStack(nnsTable);
   }
+
   return true;
 }
 
@@ -440,6 +441,7 @@ XMLRecursiveASTVisitor::PostVisitDecl(Decl *D) {
   if (!D) {
     return true;
   }
+
   if (isa<TemplateDecl>(D) || isa<ClassTemplatePartialSpecializationDecl>(D)
       || isa<TranslationUnitDecl>(D)) {
     typetableinfo.popTypeTableStack();
@@ -447,7 +449,6 @@ XMLRecursiveASTVisitor::PostVisitDecl(Decl *D) {
   }
   return true;
 }
-
 bool
 XMLRecursiveASTVisitor::VisitDeclarationNameInfo(DeclarationNameInfo NI) {
   DeclarationName DN = NI.getName();

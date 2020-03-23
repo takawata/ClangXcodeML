@@ -350,13 +350,6 @@ commonSetUpForRecordDecl(
   if (const auto CTS = dyn_cast<ClassTemplateSpecializationDecl>(RD)) {
     xmlNewProp(node, BAD_CAST "is_template_instantiation", BAD_CAST "1");
     auto ST = CTS->getSpecializedTemplate();
-    auto IT = ST->getInjectedClassNameSpecialization();
-#if 0    
-    auto TST = dyn_cast<TemplateSpecializationType>(IT);
-    auto TN = TST->getTemplateName();
-#endif    
-    xmlNewProp(node, BAD_CAST "instantiatate_from",
-               BAD_CAST TTI.getTypeName(IT).c_str());
     const auto templArgs = xmlNewNode(nullptr, BAD_CAST "templateArguments");
     for (auto &&arg : CTS->getTemplateArgs().asArray()) {
       switch (arg.getKind()) {
@@ -388,7 +381,6 @@ commonSetUpForRecordDecl(
         break;
       case TemplateArgument::Template:{
         auto tn = arg.getAsTemplate();
-        tn.dump();
         xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "template"));
         break;
       }
@@ -785,7 +777,7 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
           const auto tnode = xmlNewNode(nullptr, BAD_CAST "template");
           auto tn = arg.getAsTemplate();
           auto tnt = tn.getAsTemplateDecl();
-          tnt->dump();
+          //tnt->dump();
           //std::cout <<getTypeName(tn) <<std:endl;
           if(tnt != nullptr){
             xmlNewProp(tnode,

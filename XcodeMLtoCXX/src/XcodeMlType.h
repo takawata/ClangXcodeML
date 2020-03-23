@@ -1,5 +1,9 @@
 #ifndef XCODEMLTYPE_H
 #define XCODEMLTYPE_H
+#include <libxml/tree.h>
+#include <libxml/parser.h>
+#include <libxml/xpath.h>
+#include <libxml/xpathInternals.h>
 
 namespace XcodeMl {
 
@@ -327,7 +331,7 @@ public:
   CodeFragment addVolatileQualifier(CodeFragment) const override;
   static bool classof(const Type *);
   CodeFragment makeVsizeDeclaration(
-     CodeFragment, const TypeTable &, const NnsTable & xmlNodePtr );
+     CodeFragment, const TypeTable &, const NnsTable &  );
 
   /*! Returns the element type as `XcodeMl::TypeRef`. */
   TypeRef getElemType(const TypeTable &) const;
@@ -447,7 +451,8 @@ public:
       const CodeFragment &,
       const std::vector<BaseClass> &,
       const Symbols &,
-      const llvm::Optional<TemplateArgList> &);
+	    const llvm::Optional<TemplateArgList> &,
+	    uintptr_t node ) ;
   ClassType(const DataTypeIdent &, const Symbols &);
   CodeFragment makeDeclaration(
       CodeFragment, const TypeTable &, const NnsTable &) override;
@@ -463,7 +468,7 @@ public:
   llvm::Optional<CodeFragment> getAsTemplateId(
       const TypeTable &typeTable, const NnsTable &nnsTable) const;
   static bool classof(const Type *);
-
+  xmlNodePtr getNode(){ return reinterpret_cast<xmlNodePtr>(node);};
 protected:
   ClassType(const ClassType &);
 
@@ -474,6 +479,7 @@ private:
   std::vector<BaseClass> bases_;
   Symbols classScopeSymbols;
   llvm::Optional<TemplateArgList> templateArgs;
+  uintptr_t node;
 };
 
 class TemplateTypeParm : public Type {
@@ -571,13 +577,15 @@ TypeRef makeClassType(const DataTypeIdent &dtident,
     const CodeFragment &className,
     const std::vector<ClassType::BaseClass> &bases,
     const ClassType::Symbols &members,
-    const llvm::Optional<TemplateArgList> &templateArgs);
+		      const llvm::Optional<TemplateArgList> &templateArgs,
+		      const xmlNodePtr node);
 TypeRef makeCXXUnionType(const DataTypeIdent &ident,
     const llvm::Optional<std::string> nnsident,
     const CodeFragment &unionName,
     const std::vector<ClassType::BaseClass> &bases,
     const ClassType::Symbols &members,
-    const llvm::Optional<TemplateArgList> &templateArgs);
+			 const llvm::Optional<TemplateArgList> &templateArgs,
+			 const xmlNodePtr node);
 TypeRef makeFunctionType(const DataTypeIdent &ident,
     const DataTypeIdent &returnType,
     const std::vector<DataTypeIdent> &paramTypes);

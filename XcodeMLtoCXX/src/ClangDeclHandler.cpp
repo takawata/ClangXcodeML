@@ -131,21 +131,6 @@ makeTemplateHead(xmlNodePtr node, const CodeBuilder &w, SourceInfo &src) {
       + makeTokenNode(">");
 }
 
-DEFINE_DECLHANDLER(ClassTemplateProc) {
-  if (const auto typeTableNode =
-          findFirst(node, "xcodemlTypeTable", src.ctxt)) {
-    src.typeTable = expandTypeTable(src.typeTable, typeTableNode, src.ctxt);
-  }
-  if (const auto nnsTableNode = findFirst(node, "xcodemlNnsTable", src.ctxt)) {
-    src.nnsTable = expandNnsTable(src.nnsTable, nnsTableNode, src.ctxt);
-  }
-  const auto bodyNode =
-      findFirst(node, "clangDecl[@class='CXXRecord']", src.ctxt);
-
-  const auto head = makeTemplateHead(node, w, src);
-  const auto body = w.walk(bodyNode, src);
-  return head + body;
-}
 
 XcodeMl::CodeFragment
 makeBases(const XcodeMl::ClassType &T, SourceInfo &src) {
@@ -157,14 +142,14 @@ makeBases(const XcodeMl::ClassType &T, SourceInfo &src) {
       std::back_inserter(decls),
       [&src](ClassType::BaseClass base) {
         const auto T = src.typeTable.at(std::get<1>(base));
-	std::cerr <<std::get<0>(base)<<","<<std::get<1>(base)<<std::endl;
+	//std::cerr <<std::get<0>(base)<<","<<std::get<1>(base)<<std::endl;
 	CodeFragment desc;
 	if(const auto classT = llvm::dyn_cast<ClassType>(T.get())){
 	  desc = classT->getAsTemplateId(src.typeTable, src.nnsTable)
 	    .getValueOr(classT->name());
 	}else if(const auto TS = llvm::dyn_cast<TemplateSpecializationType>(T.get())){
 	  desc = TS->makeDeclaration(CXXCodeGen::makeVoidNode(),
-				     src.typeTable, src.nnsTable);
+			     src.typeTable, src.nnsTable);
 	}else if(const auto TT = llvm::dyn_cast<TemplateTypeParm>(T.get())){
 	  desc = TT->makeDeclaration(CXXCodeGen::makeVoidNode(),
 				     src.typeTable, src.nnsTable);
@@ -223,7 +208,8 @@ emitClassDefinition(xmlNodePtr node,
       decls.push_back(makeTokenNode(access) + makeTokenNode(":") + decl);
     } else {
       decls.push_back(makeTokenNode(
-          "\n/* Ignored a member with no access specifier */\n"));
+	       "\n/* Ignored a member with no access specifier ") + decl +
+		      makeTokenNode("*/\n"));
     }
   }
 
@@ -234,6 +220,28 @@ emitClassDefinition(xmlNodePtr node,
 
   return classKey + name + makeBases(classType, src)
       + wrapWithBrace(insertNewLines(decls)) + CXXCodeGen::makeNewLineNode();
+}
+
+DEFINE_DECLHANDLER(ClassTemplateProc) {
+  if (const auto typeTableNode =
+          findFirst(node, "xcodemlTypeTable", src.ctxt)) {
+    src.typeTable = expandTypeTable(src.typeTable, typeTableNode, src.ctxt);
+  }
+  if (const auto nnsTableNode = findFirst(node, "xcodemlNnsTable", src.ctxt)) {
+    src.nnsTable = expandNnsTable(src.nnsTable, nnsTableNode, src.ctxt);
+  }
+  const auto bodyNode =
+    findFirst(node, "clangDecl[@class='CXXRecord']", src.ctxt);
+  //const auto bodyNode = records[0];
+
+  const auto head = makeTemplateHead(node, w, src);
+  const auto body = w.walk(bodyNode, src) + makeTokenNode(";");
+  const auto specs = findNodes(node, "clangDecl[@class='ClassTemplateSpecialization']", src.ctxt);
+  auto speccode = CXXCodeGen::makeTokenNode("\n");
+  for(auto && ent : specs){
+    speccode = speccode +  w.walk(ent, src);
+  }
+  return head + body + speccode;
 }
 
 DEFINE_DECLHANDLER(ClassTemplatePartialSpecializationProc) {
@@ -296,8 +304,8 @@ DEFINE_DECLHANDLER(CXXRecordProc) {
 
   const auto T = src.typeTable.at(getType(node));
   auto classT = llvm::dyn_cast<XcodeMl::ClassType>(T.get());
+  //std::cerr <<getType(node)<<classT<<std::endl;
   assert(classT);
-
   setClassName(*classT, src);
   const auto nameSpelling = classT->name(); // now class name must exist
 
@@ -426,19 +434,19 @@ DEFINE_DECLHANDLER(FunctionTemplateProc)
   }
   const auto paramNodes =
       findNodes(node, "clangDecl[@class='TemplateTypeParm' or @class ='NonTypeTemplateParm']", src.ctxt);
-  const auto body = findFirst(node,
-			      "clangDecl[@class='CXXMethod' or 'CXXConstructor' or 'Function']"
+  const auto bodyNodes = findNodes(node,
+			      "clangDecl[@class='CXXMethod' or @class ='CXXConstructor' or @class='Function']"
 			      , src.ctxt);
-  if(!body){
-    throw(std::runtime_error("Body is Null"));
-  }
   std::vector<CXXCodeGen::StringTreeRef> params;
   for (auto &&paramNode : paramNodes) {
     params.push_back(w.walk(paramNode, src));
   }
-
+  std::vector<CXXCodeGen::StringTreeRef> bodies;
+  for(auto && bodyNode : bodyNodes){
+    bodies.push_back(w.walk(bodyNode, src));    
+  }
   return makeTokenNode("template") + makeTokenNode("<") + join(",", params)
-      + makeTokenNode(">") + w.walk(body, src);
+    + makeTokenNode(">") + join("\n", bodies );
 
 }
 
