@@ -244,6 +244,32 @@ DEFINE_TA(otherTypeProc){
   map[dtident] = XcodeMl::makeOtherType(dtident);
 }
 
+DEFINE_TA(dependentTemplateSpecializationTypeProc){
+  const auto dtident = getProp(node, "type");
+  const auto name = getContent(findFirst(node, "name", ctxt));
+  map[dtident] = XcodeMl::makeDependentTemplateSpecializationType(dtident);
+}
+
+DEFINE_TA(atomicTypeProc){
+  const auto dtident = getProp(node, "type");
+  const auto vident = getProp(node, "valueType");
+  const auto name = getContent(findFirst(node, "name", ctxt));
+  map[dtident] = XcodeMl::makeAtomicType(dtident, vident);
+}
+
+DEFINE_TA(unaryTransformTypeProc){
+  const auto dtident = getProp(node, "type");
+  const auto utype = getProp(node, "Typeparam");
+  const auto name = getContent(findFirst(node, "name", ctxt));
+  map[dtident] = XcodeMl::makeUnaryTransformType(dtident, utype);
+}
+
+DEFINE_TA(packExpansionTypeProc){
+  const auto dtident = getProp(node, "type");
+  const auto name = getContent(findFirst(node, "name", ctxt));
+  map[dtident] = XcodeMl::makePackExpansionType(dtident);
+}
+
 DEFINE_TA(declTypeProc){
   const auto dtident = getProp(node, "type");
   const auto name = getContent(findFirst(node, "name", ctxt));
@@ -264,6 +290,7 @@ DEFINE_TA(TemplateSpecializationTypeProc){
   map[dtident] =
     XcodeMl::makeTemplateSpecializationType(dtident, makeTokenNode(name),targs);
 }
+
 const std::vector<std::string> identicalFndDataTypeIdents = {
     "void",
     "char",
@@ -325,6 +352,11 @@ const TypeAnalyzer XcodeMLTypeAnalyzer("TypeAnalyzer",
 	std::make_tuple("TemplateSpecializationType", TemplateSpecializationTypeProc),
         std::make_tuple("injectedClassNameType", classTypeProc),
 	std::make_tuple("DependentNameType", DependentNameProc),
+	std::make_tuple("dependentTemplateSpecializationType",
+			dependentTemplateSpecializationTypeProc),
+	std::make_tuple("atomicType", atomicTypeProc),
+	std::make_tuple("unaryTransformType", unaryTransformTypeProc),
+	std::make_tuple("PackExpansionType", packExpansionTypeProc),
 	std::make_tuple("decltypeType", declTypeProc),
 	std::make_tuple("otherType", otherTypeProc),
     });

@@ -847,16 +847,54 @@ TemplateSpecializationType::makeDeclaration(
 
   return name + list;
 }
-
 Type *
 TemplateSpecializationType::clone() const {
-  TemplateSpecializationType *copy = new TemplateSpecializationType(*this);
+  TemplateSpecializationType *copy
+    = new TemplateSpecializationType(*this);
   return copy;
 }
 
 bool
 TemplateSpecializationType::classof(const Type *T) {
   return T->getKind() == TypeKind::TemplateSpecialization;
+}
+
+DependentTemplateSpecializationType::DependentTemplateSpecializationType(const DataTypeIdent &ident/*, const CodeFragment &name_, const llvm::Optional<TemplateArgList> &Ta*/)
+  : Type(TypeKind::DependentTemplateSpecialization, ident)/*, name(name_),  templateArgs(Ta)*/{
+}
+
+CodeFragment
+DependentTemplateSpecializationType::makeDeclaration(
+    CodeFragment var, const TypeTable &typeTable, const NnsTable &nnsTable) {
+#if 0
+  std::vector<CodeFragment> targs;
+  for (auto &&dtident : *templateArgs) {
+    CodeFragment arg;
+    if(!dtident.argType){
+      const auto T = typeTable.at(dtident.ident);
+      arg = makeDecl(T, makeVoidNode(), typeTable, nnsTable);
+    }else{
+      arg = makeTokenNode(dtident.ident);
+    }
+    targs.push_back(arg);
+  }
+  const auto list = makeTokenNode("<") + join(",", targs) + makeTokenNode(">");
+
+  return name + list;
+#endif
+  return makeTokenNode("/*DependentTemplateSpesialization*/");
+}
+
+Type *
+DependentTemplateSpecializationType::clone() const {
+  DependentTemplateSpecializationType *copy
+    = new DependentTemplateSpecializationType(*this);
+  return copy;
+}
+
+bool
+DependentTemplateSpecializationType::classof(const Type *T) {
+  return T->getKind() == TypeKind::DependentTemplateSpecialization;
 }
 DependentNameType::DependentNameType(const DataTypeIdent &ident,const DataTypeIdent &u,const DataTypeIdent &m)
   : Type(TypeKind::DependentName, ident),upper(u),member(m)
@@ -883,6 +921,82 @@ DependentNameType::classof(const Type *T) {
   return T->getKind() == TypeKind::DependentName;
 }
 
+PackExpansionType::PackExpansionType(const PackExpansionType &packex) :
+  Type(packex) {
+}
+PackExpansionType::PackExpansionType(const DataTypeIdent &ident)
+  : Type(TypeKind::PackExpansion, ident) {
+}
+CodeFragment
+PackExpansionType::makeDeclaration(
+    CodeFragment var, const TypeTable &, const NnsTable &) {
+  return  var + makeTokenNode("...");
+}
+
+Type *
+PackExpansionType::clone() const{
+  auto *copy = new PackExpansionType(*this);
+  return copy;
+}
+
+bool
+PackExpansionType::classof(const Type *T) {
+  return T->getKind() == TypeKind::PackExpansion;
+}
+
+UnaryTransformType::UnaryTransformType(const UnaryTransformType &packex) :
+  Type(packex) {
+}
+UnaryTransformType::UnaryTransformType(const DataTypeIdent &ident, const DataTypeIdent &uident)
+  : Type(TypeKind::UnaryTransform, ident), utype(uident) {
+}
+CodeFragment
+UnaryTransformType::makeDeclaration(
+    CodeFragment var, const TypeTable &typeTable, const NnsTable &nnsTable) {
+  const auto T = typeTable.at(utype);
+  return  makeTokenNode("__underlying_type(")+
+    T->makeDeclaration(makeVoidNode(),typeTable,nnsTable) +
+    makeTokenNode(") ") + var;
+}
+
+Type *
+UnaryTransformType::clone() const{
+  auto *copy = new UnaryTransformType(*this);
+  return copy;
+}
+
+bool
+UnaryTransformType::classof(const Type *T) {
+  return T->getKind() == TypeKind::UnaryTransform;
+}
+
+
+AtomicType::AtomicType(const AtomicType &attype) : Type(attype) {
+}
+AtomicType::AtomicType(const DataTypeIdent &ident, const DataTypeIdent &vtype)
+  : Type(TypeKind::Atomic, ident),valuetype(vtype) {
+}
+CodeFragment
+AtomicType::makeDeclaration(
+    CodeFragment var, const TypeTable &typeTable, const NnsTable &nnsTable) {
+  const auto T = typeTable.at(valuetype);
+  return makeTokenNode("_Atomic(") +
+    T->makeDeclaration(makeVoidNode(),typeTable,nnsTable) +
+    makeTokenNode(") ") + var;
+}
+
+Type *
+AtomicType::clone() const{
+  AtomicType *copy = new AtomicType(*this);
+  return copy;
+}
+
+bool
+AtomicType::classof(const Type *T) {
+  return T->getKind() == TypeKind::Atomic;
+}
+
+
 OtherType::OtherType(const OtherType &other) : Type(other) {
 }
  
@@ -906,6 +1020,7 @@ bool
 OtherType::classof(const Type *T) {
   return T->getKind() == TypeKind::Other;
 }
+
 
 DeclType::DeclType(const DeclType &declt) : Type(declt) {
 }
@@ -1086,6 +1201,26 @@ TypeRef
 makeTemplateTypeParm(const DataTypeIdent &dtident, const CodeFragment &name) {
   return std::make_shared<TemplateTypeParm>(dtident, name);
 }
+
+TypeRef
+makeDependentTemplateSpecializationType(const DataTypeIdent &dtident) {
+  return std::make_shared<DependentTemplateSpecializationType>(dtident);
+}
+TypeRef
+makePackExpansionType(const DataTypeIdent &dtident) {
+  return std::make_shared<PackExpansionType>(dtident);
+}
+TypeRef
+makeUnaryTransformType(const DataTypeIdent &dtident, const DataTypeIdent &uident)
+{
+  return std::make_shared<UnaryTransformType>(dtident, uident);
+}
+TypeRef
+makeAtomicType(const DataTypeIdent &dtident, const DataTypeIdent &vident)
+{
+  return std::make_shared<AtomicType>(dtident, vident);
+}
+
 TypeRef
 makeTemplateSpecializationType(const DataTypeIdent &dtident, const CodeFragment
 			       &name, const llvm::Optional<TemplateArgList>&Ta)

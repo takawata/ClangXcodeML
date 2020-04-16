@@ -40,7 +40,7 @@ public:
   Derived &getDerived() { return *static_cast<Derived *>(this); }
 
   bool shouldUseDataRecursionFor(Stmt *S) const { return false; }
-  bool shouldVisitTemplateInstantiations() const {return true;}
+  bool shouldVisitTemplateInstantiations() const {return false;}
 #define DISPATCHER(NAME, TYPE)					\
 public:                                                         \
   bool Traverse##NAME(TYPE S) {                                 \

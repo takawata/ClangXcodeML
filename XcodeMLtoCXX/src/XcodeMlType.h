@@ -65,6 +65,10 @@ enum class TypeKind {
   TemplateSpecialization,
   DependentName,
   DeclType,
+  DependentTemplateSpecialization,
+  PackExpansion,
+  Atomic,
+  UnaryTransform,
   /*! Other type */
   Other,
 };
@@ -540,6 +544,53 @@ protected:
   DeclType(const DeclType &);
 
 };
+
+class PackExpansionType: public Type{
+public:
+  PackExpansionType(const DataTypeIdent &);
+  ~PackExpansionType() override = default;
+  CodeFragment makeDeclaration
+  (CodeFragment, const TypeTable &, const NnsTable &) override;
+  Type *clone() const override;
+  static bool classof(const Type *);
+protected:
+  PackExpansionType(const PackExpansionType&);
+};
+
+class UnaryTransformType : public Type {
+  const DataTypeIdent utype;
+public:
+  UnaryTransformType(const DataTypeIdent &, const DataTypeIdent &);
+  ~UnaryTransformType() override = default;
+  CodeFragment makeDeclaration
+  (CodeFragment, const TypeTable &, const NnsTable &) override;
+  Type *clone() const override;
+  static bool classof(const Type *);
+protected:
+  UnaryTransformType(const UnaryTransformType &);
+};
+
+class AtomicType: public Type{
+  const DataTypeIdent valuetype;
+public:
+  AtomicType(const DataTypeIdent &, const DataTypeIdent &);
+  ~AtomicType() override = default;
+  CodeFragment makeDeclaration
+  (CodeFragment, const TypeTable &, const NnsTable &) override;
+  Type *clone() const override;
+  static bool classof(const Type *);
+protected:
+  AtomicType(const AtomicType &);
+};
+class DependentTemplateSpecializationType: public Type{
+public:
+  DependentTemplateSpecializationType(const DataTypeIdent&);
+  ~DependentTemplateSpecializationType() override = default;
+  CodeFragment makeDeclaration
+  (CodeFragment, const TypeTable &, const NnsTable &) override;
+  Type *clone() const override;
+  static bool classof(const Type *);
+};
 class OtherType : public Type {
 public:
   OtherType(const DataTypeIdent &);
@@ -605,6 +656,10 @@ TypeRef makeTemplateSpecializationType(const DataTypeIdent& ,
 TypeRef makeOtherType(const DataTypeIdent &);
 TypeRef makeDeclType(const DataTypeIdent &);
 TypeRef makeDependentNameType(const DataTypeIdent &, const DataTypeIdent &, const DataTypeIdent &);
+TypeRef makeDependentTemplateSpecializationType(const DataTypeIdent & );
+TypeRef makeAtomicType(const DataTypeIdent &, const DataTypeIdent &);
+TypeRef makePackExpansionType(const DataTypeIdent &);
+TypeRef makeUnaryTransformType(const DataTypeIdent &, const DataTypeIdent &);
 bool hasParen(const TypeRef &, const TypeTable &);
 }
 #endif /* !XCODEMLTYPE_H */
