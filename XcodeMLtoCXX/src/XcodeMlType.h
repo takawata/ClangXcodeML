@@ -488,7 +488,7 @@ private:
 
 class TemplateTypeParm : public Type {
 public:
-  TemplateTypeParm(const DataTypeIdent &dtident, const CodeFragment &name);
+  TemplateTypeParm(const DataTypeIdent &dtident, const CodeFragment &name, int pack);
   ~TemplateTypeParm() override = default;
   CodeFragment makeDeclaration(
       CodeFragment, const TypeTable &, const NnsTable &) override;
@@ -496,11 +496,12 @@ public:
   static bool classof(const Type *);
   void setSpelling(CodeFragment);
   llvm::Optional<CodeFragment> getSpelling() const;
-
+  bool isPack(){return pack;}
 protected:
   TemplateTypeParm(const TemplateTypeParm &);
 
 private:
+  bool pack;
   llvm::Optional<CodeFragment> pSpelling;
 };
 class TemplateSpecializationType : public Type {
@@ -546,8 +547,9 @@ protected:
 };
 
 class PackExpansionType: public Type{
+  const DataTypeIdent pattern;
 public:
-  PackExpansionType(const DataTypeIdent &);
+  PackExpansionType(const DataTypeIdent &, const DataTypeIdent &);
   ~PackExpansionType() override = default;
   CodeFragment makeDeclaration
   (CodeFragment, const TypeTable &, const NnsTable &) override;
@@ -645,7 +647,7 @@ TypeRef makeFunctionType(const DataTypeIdent &ident,
     const std::vector<DataTypeIdent> &paramTypes);
 TypeRef makeStructType(
     const DataTypeIdent &, const CodeFragment &, const Struct::MemberList &);
-  TypeRef makeTemplateTypeParm(const DataTypeIdent &, const CodeFragment &);
+  TypeRef makeTemplateTypeParm(const DataTypeIdent &, const CodeFragment &, int);
 TypeRef makeVariadicFunctionType(const DataTypeIdent &ident,
     const DataTypeIdent &returnType,
     const std::vector<DataTypeIdent> &paramTypes);
@@ -658,7 +660,7 @@ TypeRef makeDeclType(const DataTypeIdent &);
 TypeRef makeDependentNameType(const DataTypeIdent &, const DataTypeIdent &, const DataTypeIdent &);
 TypeRef makeDependentTemplateSpecializationType(const DataTypeIdent & );
 TypeRef makeAtomicType(const DataTypeIdent &, const DataTypeIdent &);
-TypeRef makePackExpansionType(const DataTypeIdent &);
+TypeRef makePackExpansionType(const DataTypeIdent &, const DataTypeIdent &);
 TypeRef makeUnaryTransformType(const DataTypeIdent &, const DataTypeIdent &);
 bool hasParen(const TypeRef &, const TypeTable &);
 }

@@ -235,8 +235,10 @@ DEFINE_TA(enumTypeProc) {
 DEFINE_TA(TemplateTypeParmTypeProc) {
   const auto dtident = getProp(node, "type");
   const auto name = getContent(findFirst(node, "name", ctxt));
+  const auto pack = std::stoi(getProp(node, "pack"));
   //std::cerr <<"Processing"<<dtident<<","<<name<<std::endl;
-  map[dtident] = XcodeMl::makeTemplateTypeParm(dtident, makeTokenNode(name));
+  map[dtident] = XcodeMl::makeTemplateTypeParm(dtident, makeTokenNode(name),
+					       pack);
 }
 DEFINE_TA(otherTypeProc){
   const auto dtident = getProp(node, "type");
@@ -267,7 +269,8 @@ DEFINE_TA(unaryTransformTypeProc){
 DEFINE_TA(packExpansionTypeProc){
   const auto dtident = getProp(node, "type");
   const auto name = getContent(findFirst(node, "name", ctxt));
-  map[dtident] = XcodeMl::makePackExpansionType(dtident);
+  const auto pattern = getProp(node, "pattern");
+  map[dtident] = XcodeMl::makePackExpansionType(dtident, pattern);
 }
 
 DEFINE_TA(declTypeProc){

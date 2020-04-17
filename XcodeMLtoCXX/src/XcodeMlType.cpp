@@ -786,15 +786,16 @@ ClassType::ClassType(const ClassType &other)
 }
 
 TemplateTypeParm::TemplateTypeParm(
-    const DataTypeIdent &dtident, const CodeFragment &name)
-    : Type(TypeKind::TemplateTypeParm, dtident), pSpelling(name) {
+	   const DataTypeIdent &dtident, const CodeFragment &name, int p )
+  : Type(TypeKind::TemplateTypeParm, dtident), pSpelling(name), pack(p) {
 }
 
 CodeFragment
 TemplateTypeParm::makeDeclaration(
     CodeFragment var, const TypeTable &, const NnsTable &) {
   assert(pSpelling.hasValue());
-  return (*pSpelling) + var;
+  auto packsuffix = (pack) ?  makeTokenNode("..."): makeVoidNode();
+  return  (*pSpelling) + var + packsuffix;
 }
 
 Type *
@@ -804,7 +805,7 @@ TemplateTypeParm::clone() const {
 }
 
 TemplateTypeParm::TemplateTypeParm(const TemplateTypeParm &other)
-    : Type(other), pSpelling(other.pSpelling) {
+  : Type(other), pSpelling(other.pSpelling), pack(other.pack) {
 }
 
 bool
@@ -922,15 +923,16 @@ DependentNameType::classof(const Type *T) {
 }
 
 PackExpansionType::PackExpansionType(const PackExpansionType &packex) :
-  Type(packex) {
+  Type(packex),pattern(packex.pattern) {
 }
-PackExpansionType::PackExpansionType(const DataTypeIdent &ident)
-  : Type(TypeKind::PackExpansion, ident) {
+PackExpansionType::PackExpansionType(const DataTypeIdent &ident, const DataTypeIdent &pat)
+  : Type(TypeKind::PackExpansion, ident),pattern(pat) {
 }
 CodeFragment
 PackExpansionType::makeDeclaration(
-    CodeFragment var, const TypeTable &, const NnsTable &) {
-  return  var + makeTokenNode("...");
+    CodeFragment var, const TypeTable &typeTable, const NnsTable &nnsTable) {
+  const auto T = typeTable.at(pattern);
+  return T->makeDeclaration(makeVoidNode(),typeTable,nnsTable);
 }
 
 Type *
@@ -1198,8 +1200,8 @@ makeCXXUnionType(const DataTypeIdent &ident,
 }
 
 TypeRef
-makeTemplateTypeParm(const DataTypeIdent &dtident, const CodeFragment &name) {
-  return std::make_shared<TemplateTypeParm>(dtident, name);
+makeTemplateTypeParm(const DataTypeIdent &dtident, const CodeFragment &name, int pack) {
+  return std::make_shared<TemplateTypeParm>(dtident, name, pack);
 }
 
 TypeRef
@@ -1207,8 +1209,8 @@ makeDependentTemplateSpecializationType(const DataTypeIdent &dtident) {
   return std::make_shared<DependentTemplateSpecializationType>(dtident);
 }
 TypeRef
-makePackExpansionType(const DataTypeIdent &dtident) {
-  return std::make_shared<PackExpansionType>(dtident);
+makePackExpansionType(const DataTypeIdent &dtident, const DataTypeIdent &pattern) {
+  return std::make_shared<PackExpansionType>(dtident, pattern);
 }
 TypeRef
 makeUnaryTransformType(const DataTypeIdent &dtident, const DataTypeIdent &uident)

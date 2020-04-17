@@ -507,8 +507,9 @@ DEFINE_DECLHANDLER(TemplateTypeParmProc) {
   auto T = src.typeTable.at(dtident);
   auto TTPT = llvm::cast<XcodeMl::TemplateTypeParm>(T.get());
   const auto nameSpelling = TTPT->getSpelling().getValue();
-
-  return makeTokenNode("typename") + nameSpelling;
+  const auto packstr = TTPT->isPack() ? makeTokenNode("...") :
+    CXXCodeGen::makeVoidNode();
+  return makeTokenNode("typename") + packstr + nameSpelling;
 }
 
 DEFINE_DECLHANDLER(TranslationUnitProc) {

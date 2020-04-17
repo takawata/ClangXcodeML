@@ -722,6 +722,8 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
       xmlNewProp(Node,
           BAD_CAST "clang_index",
           BAD_CAST std::to_string(TTP->getIndex()).c_str());
+      xmlNewProp(Node, BAD_CAST "pack", (TTP->isParameterPack() ?
+                                         BAD_CAST "1" : BAD_CAST "0"));
       const auto nameNode = makeNameNode(*this, TTP);
       xmlAddChild(Node, nameNode);
       pushType(T, Node);
@@ -841,8 +843,11 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
     }
     case Type::PackExpansion:{
       rawname = registerOtherType(T);
-      // XXX: temporary implementation
+      auto PET = dyn_cast<PackExpansionType>(T);
       Node = createNode(T, "PackExpansionType", nullptr);
+      xmlNewProp (Node,
+                  BAD_CAST "pattern",
+                  BAD_CAST(getTypeName(PET->getPattern()).c_str()));
       pushType(T, Node);
       break;
     }
