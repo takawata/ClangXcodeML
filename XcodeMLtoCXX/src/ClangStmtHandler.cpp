@@ -517,6 +517,10 @@ DEFINE_STMTHANDLER(MemberExprProc) {
   const auto isArrow = isTrueProp(node, "is_arrow", false);
   return expr + makeTokenNode(isArrow ? "->" : ".") + member;
 }
+DEFINE_STMTHANDLER(PackExpansionProc) {
+  const auto expr = makeInnerNode(ProgramBuilder.walkChildren(node, src));
+  return expr + makeTokenNode("...");
+}
 
 DEFINE_STMTHANDLER(ReturnStmtProc) {
   if (const auto exprNode = findFirst(node, "clangStmt", src.ctxt)) {
@@ -615,6 +619,7 @@ const ClangStmtHandlerType ClangStmtHandler("class",
         std::make_tuple("IntegerLiteral", emitIntegerLiteral),
         std::make_tuple("LabelStmt", LabelStmtProc),
         std::make_tuple("MemberExpr", MemberExprProc),
+	std::make_tuple("PackExpansionExpr", PackExpansionProc),
 	std::make_tuple("CXXDependentScopeMemberExpr", CXXDependentScopeMemberExprProc),
 	std::make_tuple("DependentScopeDeclRefExpr", DependentScopeDeclRefExprProc),
         std::make_tuple("ReturnStmt", ReturnStmtProc),
