@@ -278,6 +278,28 @@ LValueReferenceType::classof(const Type *T) {
   return T->getKind() == TypeKind::LValueReference;
 }
 
+RValueReferenceType::RValueReferenceType(
+    const DataTypeIdent &ident, const DataTypeIdent &ref)
+    : ReferenceType(ident, TypeKind::RValueReference, ref) {
+}
+
+CodeFragment
+RValueReferenceType::makeDeclaration(
+    CodeFragment var, const TypeTable &env, const NnsTable &nnsTable) {
+  return makeDecl(env.at(ref), makeTokenNode("&& ") + var, env, nnsTable);
+}
+
+Type *
+RValueReferenceType::clone() const {
+  RValueReferenceType *copy = new RValueReferenceType(*this);
+  return copy;
+}
+
+bool
+RValueReferenceType::classof(const Type *T) {
+  return T->getKind() == TypeKind::RValueReference;
+}
+
 ParamList::ParamList(
     const std::vector<DataTypeIdent> &paramTypes, bool ellipsis)
     : dtidents(paramTypes), hasEllipsis(ellipsis) {
@@ -932,7 +954,7 @@ CodeFragment
 PackExpansionType::makeDeclaration(
     CodeFragment var, const TypeTable &typeTable, const NnsTable &nnsTable) {
   const auto T = typeTable.at(pattern);
-  return T->makeDeclaration(makeVoidNode(),typeTable,nnsTable);
+  return T->makeDeclaration(makeVoidNode(),typeTable,nnsTable)+var;
 }
 
 Type *
@@ -1106,6 +1128,11 @@ makeLValueReferenceType(const DataTypeIdent &ident, const DataTypeIdent &ref) {
 }
 
 TypeRef
+makeRValueReferenceType(const DataTypeIdent &ident, const DataTypeIdent &ref) {
+  return std::make_shared<RValueReferenceType>(ident, ref);
+}
+
+TypeRef
 makeArrayType(DataTypeIdent ident, TypeRef elemType, size_t size) {
   return std::make_shared<Array>(ident, elemType->dataTypeIdent(), size);
 }
@@ -1268,6 +1295,8 @@ hasParen(const TypeRef &type, const TypeTable &env) {
   }
   case TypeKind::LValueReference:
     return hasParen(getPointee<LValueReferenceType>(type, env), env);
+  case TypeKind::RValueReference:
+    return hasParen(getPointee<RValueReferenceType>(type, env), env);
   case TypeKind::Pointer: return hasParen(getPointee<Pointer>(type, env), env);
 
   default: return false;

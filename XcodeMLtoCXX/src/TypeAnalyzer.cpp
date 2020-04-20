@@ -64,6 +64,12 @@ DEFINE_TA(pointerTypeProc) {
     return;
   }
 
+  if (refProp.hasValue() && (*refProp == "rvalue")) {
+    auto reference = XcodeMl::makeRValueReferenceType(name, refName);
+    map[name] = reference;
+    return;
+  }
+
   auto pointer = XcodeMl::makePointerType(name, refName);
   pointer->setConst(isTrueProp(node, "is_const", false));
   pointer->setVolatile(isTrueProp(node, "is_volatile", false));

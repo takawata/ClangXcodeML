@@ -254,6 +254,20 @@ protected:
   LValueReferenceType(const LValueReferenceType &) = default;
 };
 
+class RValueReferenceType : public ReferenceType {
+public:
+  RValueReferenceType(
+      const DataTypeIdent &dtident, const DataTypeIdent &pointee);
+  CodeFragment makeDeclaration(
+      CodeFragment, const TypeTable &, const NnsTable &) override;
+  ~RValueReferenceType() override = default;
+  Type *clone() const override;
+  static bool classof(const Type *);
+
+protected:
+  RValueReferenceType(const RValueReferenceType &) = default;
+};
+
 class ParamList {
 public:
   ParamList() = default;
@@ -617,6 +631,7 @@ TypeRef makePointerType(DataTypeIdent, DataTypeIdent);
 TypeRef makeMemberPointerType(
     DataTypeIdent dtident, DataTypeIdent pointee, DataTypeIdent record);
 TypeRef makeLValueReferenceType(const DataTypeIdent &, const DataTypeIdent &);
+TypeRef makeRValueReferenceType(const DataTypeIdent &, const DataTypeIdent &);
 TypeRef makeArrayType(DataTypeIdent, TypeRef, size_t);
 TypeRef makeArrayType(DataTypeIdent, TypeRef, size_t);
 TypeRef makeArrayType(DataTypeIdent, TypeRef, Array::Size);
