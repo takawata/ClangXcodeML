@@ -122,7 +122,7 @@ makeVariableArraySize(xmlNodePtr node, SourceInfo &src,
 CodeFragment
 makeTemplateHead(xmlNodePtr node, const CodeBuilder &w, SourceInfo &src) {
   const auto paramNodes =
-      findNodes(node, "clangDecl[@class='TemplateTypeParm' or @class ='NonTypeTemplateParm']", src.ctxt);
+      findNodes(node, "clangDecl[@class='TemplateTemplateParm' or @class='TemplateTypeParm' or @class ='NonTypeTemplateParm']", src.ctxt);
   std::vector<CXXCodeGen::StringTreeRef> params;
   for (auto &&paramNode : paramNodes) {
     params.push_back(w.walk(paramNode, src));
@@ -433,7 +433,7 @@ DEFINE_DECLHANDLER(FunctionTemplateProc)
     src.nnsTable = expandNnsTable(src.nnsTable, nnsTableNode, src.ctxt);
   }
   const auto paramNodes =
-      findNodes(node, "clangDecl[@class='TemplateTypeParm' or @class ='NonTypeTemplateParm']", src.ctxt);
+      findNodes(node, "clangDecl[@class='TemplateTemplateParm' or @class='TemplateTypeParm' or @class ='NonTypeTemplateParm']", src.ctxt);
   const auto bodyNodes = findNodes(node,
 			      "clangDecl[@class='CXXMethod' or @class ='CXXConstructor' or @class='Function']"
 			      , src.ctxt);
@@ -499,7 +499,7 @@ DEFINE_DECLHANDLER(TemplateTemplateParmProc) {
     src.typeTable = expandTypeTable(src.typeTable, typeTableNode, src.ctxt);
   }
   const auto head = makeTemplateHead(node, w, src);
-  return makeTokenNode("template <") + head +  makeTokenNode(">");
+  return  head;
 }
 
 DEFINE_DECLHANDLER(TemplateTypeParmProc) {
@@ -531,7 +531,7 @@ DEFINE_DECLHANDLER(TypeAliasTemplateProc){
     src.nnsTable = expandNnsTable(src.nnsTable, nnsTableNode, src.ctxt);
   }
   const auto paramNodes =
-      findNodes(node, "clangDecl[@class='TemplateTypeParm' or @class='NonTypeTemplateParm']", src.ctxt);
+      findNodes(node, "clangDecl[@class ='TemplateTemplateParm' or @class='TemplateTypeParm' or @class='NonTypeTemplateParm']", src.ctxt);
   const auto body = findFirst(node, "clangDecl[@class='TypeAlias']", src.ctxt);
 
   std::vector<CXXCodeGen::StringTreeRef> params;
