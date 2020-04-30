@@ -356,7 +356,13 @@ XMLRecursiveASTVisitor::PreVisitDecl(Decl *D) {
     const auto T = QualType(TD->getTypeForDecl(), 0);
     newProp("xcodemlType", typetableinfo.getTypeName(T).c_str());
   }
-
+  if(auto TTPD = dyn_cast<TemplateTemplateParmDecl>(D)){
+      const auto depth = TTPD->getDepth();
+      const auto index = TTPD->getIndex();
+      std::string name = "__xcodeml_template_template_" + std::to_string(depth)
+          + "_" + std::to_string(index);
+      newProp("argname", name.c_str());
+  }
   if (auto TND = dyn_cast<TypedefNameDecl>(D)) {
     const auto T = TND->getUnderlyingType();
     newProp("xcodemlTypedefType",

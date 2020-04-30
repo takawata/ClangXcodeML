@@ -498,8 +498,9 @@ DEFINE_DECLHANDLER(TemplateTemplateParmProc) {
           findFirst(node, "xcodemlTypeTable", src.ctxt)) {
     src.typeTable = expandTypeTable(src.typeTable, typeTableNode, src.ctxt);
   }
+  const auto name = getProp(node, "argname");
   const auto head = makeTemplateHead(node, w, src);
-  return  head;
+  return  head + makeTokenNode(" class ")+ makeTokenNode(name);
 }
 
 DEFINE_DECLHANDLER(TemplateTypeParmProc) {

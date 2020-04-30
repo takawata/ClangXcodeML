@@ -1056,7 +1056,7 @@ DeclType::DeclType(const DataTypeIdent &ident)
 CodeFragment
 DeclType::makeDeclaration(
     CodeFragment var, const TypeTable &, const NnsTable &) {
-  return makeTokenNode("decltype (") + var + makeTokenNode(")");
+  return makeTokenNode("decltype ()") + var;
 }
 
 Type *

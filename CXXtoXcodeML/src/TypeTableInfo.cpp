@@ -380,9 +380,17 @@ commonSetUpForRecordDecl(
         }
         break;
       case TemplateArgument::Template:{
-        auto tn = arg.getAsTemplate();
-        xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "template"));
-        break;
+          const auto tnode = xmlNewNode(nullptr, BAD_CAST "template");
+          auto tn = arg.getAsTemplate();
+          auto tnt = tn.getAsTemplateDecl();
+          //tnt->dump();
+          //std::cout <<getTypeName(tn) <<std:endl;
+          if(tnt != nullptr){
+            xmlNewProp(tnode,
+                       BAD_CAST "name",
+                       BAD_CAST tnt->getName().str().c_str());
+          }
+          xmlAddChild(templArgs, tnode);
       }
       case TemplateArgument::TemplateExpansion:
         xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "template_expansion"));
@@ -468,7 +476,6 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
       const Type *Tptr = T.getTypePtrOrNull();
       ASTContext &CXT = mangleContext->getASTContext();
       PrintingPolicy PP(CXT.getLangOpts());
-
       // XXX: temporary implementation
       rawname = static_cast<const BuiltinType *>(Tptr)->getName(PP).str();
       for (auto I = rawname.begin(); I != rawname.end(); ++I) {
@@ -744,19 +751,25 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
     }
     case Type::TemplateSpecialization:{
       rawname = registerTemplateSpecializationType(T);
-      //std::cerr << "OTHER TYPE1"<< T->getTypeClassName()<<std::endl;
-      // XXX: temporary implementation
       Node = createNode(T, "TemplateSpecializationType", nullptr);
       xmlNewProp(
                  Node, BAD_CAST "clang_type_class", BAD_CAST(T->getTypeClassName()));
       auto TST = cast<TemplateSpecializationType>(T);
       auto TD = TST->getTemplateName().getUnderlying().getAsTemplateDecl();
-
-      //TST->dump();
+      auto TTPD = llvm::dyn_cast<TemplateTemplateParmDecl>(TD);
+      std::string namestr;
+      if(TTPD != NULL){
+        const auto depth = TTPD->getDepth();
+        const auto index = TTPD->getIndex();
+        namestr = "__xcodeml_template_template_" + std::to_string(depth)
+          + "_" + std::to_string(index);
+      }else {
+        namestr = TD->getDeclName().getAsString();
+      }
       xmlNewChild(Node,
                   nullptr,
                   BAD_CAST "name",
-                  BAD_CAST TD->getName().data());
+                  BAD_CAST namestr.c_str());
       const auto templArgs = xmlNewNode(nullptr, BAD_CAST "templateArguments");
       for(auto arg : *TST){
         switch (arg.getKind()) {
@@ -804,12 +817,13 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
           xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "template_expansion"));
           break;
         case TemplateArgument::Expression:{
-          
           xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "expression"));
           break;
         }
         case TemplateArgument::Pack:
+          {
           xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "pack"));
+          }
           break;
         }
       }
