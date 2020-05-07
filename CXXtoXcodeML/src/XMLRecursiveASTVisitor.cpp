@@ -363,6 +363,9 @@ XMLRecursiveASTVisitor::PreVisitDecl(Decl *D) {
           + "_" + std::to_string(index);
       newProp("argname", name.c_str());
   }
+  if (auto NTTPD = dyn_cast<NonTypeTemplateParmDecl>(D)) {
+      newProp("pack", std::to_string(NTTPD->isParameterPack()).c_str());
+  }
   if (auto TND = dyn_cast<TypedefNameDecl>(D)) {
     const auto T = TND->getUnderlyingType();
     newProp("xcodemlTypedefType",

@@ -646,7 +646,11 @@ DEFINE_DECLHANDLER(VarProcInClass) {
   return emitVarDecl(node, w, src, true);
 }
 DEFINE_DECLHANDLER(NonTypeTemplateParmProc) {
-  return emitVarDecl(node, w, src, false);
+  auto packflag = std::stoi(getProp(node, "pack"));
+  auto suffix = CXXCodeGen::makeVoidNode();
+  if(packflag)
+    suffix = makeTokenNode("...");
+  return emitVarDecl(node, w, src, false)+suffix;
 }
 
 } // namespace

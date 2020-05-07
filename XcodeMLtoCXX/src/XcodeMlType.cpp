@@ -781,17 +781,27 @@ ClassType::getAsTemplateId(
     return MaybeCodeFragment();
   }
   std::vector<CodeFragment> targs;
+  CodeFragment comment = makeVoidNode();
   for (auto &&dtident : *templateArgs) {
     CodeFragment arg;
-    if(!dtident.argType){
+    switch(dtident.argType){
+    case 0:{
       const auto T = typeTable.at(dtident.ident);
       arg = makeDecl(T, makeVoidNode(), typeTable, nnsTable);
-    }else{
-      arg = makeTokenNode(dtident.ident);
+      targs.push_back(arg);
     }
-    targs.push_back(arg);
+      break;
+    case 1:
+      arg = makeTokenNode(dtident.ident);
+      targs.push_back(arg);
+      break;
+    case 2:
+      comment = makeTokenNode(dtident.ident);
+      break;
+    }
   }
-  const auto list = makeTokenNode("<") + join(",", targs) + makeTokenNode(">");
+  const auto list = makeTokenNode("<") + join(",", targs) + makeTokenNode(">")
+  + comment;
   return MaybeCodeFragment(name_ + list);
 }
 
@@ -856,17 +866,28 @@ CodeFragment
 TemplateSpecializationType::makeDeclaration(
     CodeFragment var, const TypeTable &typeTable, const NnsTable &nnsTable) {
   std::vector<CodeFragment> targs;
+  auto comment = makeVoidNode();
+
   for (auto &&dtident : *templateArgs) {
     CodeFragment arg;
-    if(!dtident.argType){
+    switch(dtident.argType){
+    case 0:{
       const auto T = typeTable.at(dtident.ident);
       arg = makeDecl(T, makeVoidNode(), typeTable, nnsTable);
-    }else{
-      arg = makeTokenNode(dtident.ident);
+      targs.push_back(arg);
     }
-    targs.push_back(arg);
+      break;
+    case 1:
+      arg = makeTokenNode(dtident.ident);
+      targs.push_back(arg);
+      break;
+    case 2:
+      comment = makeTokenNode(dtident.ident);
+      break;
+    }
   }
-  const auto list = makeTokenNode("<") + join(",", targs) + makeTokenNode(">");
+  const auto list = makeTokenNode("<") + join(",", targs) + makeTokenNode(">")
+  + comment;
 
   return name + list;
 }
@@ -891,17 +912,27 @@ DependentTemplateSpecializationType::makeDeclaration(
     CodeFragment var, const TypeTable &typeTable, const NnsTable &nnsTable) {
 #if 0
   std::vector<CodeFragment> targs;
+
   for (auto &&dtident : *templateArgs) {
     CodeFragment arg;
-    if(!dtident.argType){
+    switch(dtident.argType){
+    case 0:{
       const auto T = typeTable.at(dtident.ident);
       arg = makeDecl(T, makeVoidNode(), typeTable, nnsTable);
-    }else{
-      arg = makeTokenNode(dtident.ident);
+      targs.push_back(arg);
     }
-    targs.push_back(arg);
+      break;
+    case 1:
+      arg = makeTokenNode(dtident.ident);
+      targs.push_back(arg);
+      break;
+    case 2:
+      comment = makeTokenNode(dtident.ident);
+      break;
+    }
   }
-  const auto list = makeTokenNode("<") + join(",", targs) + makeTokenNode(">");
+  const auto list = makeTokenNode("<") + join(",", targs) + makeTokenNode(">")
+  + comment;
 
   return name + list;
 #endif

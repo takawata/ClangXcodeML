@@ -191,8 +191,9 @@ getTemplateArgs(xmlNodePtr node, xmlXPathContextPtr ctxt) {
       arg.argType = 1;
       arg.ident = getProp(targNode, "name") ; 
     }else if(strcmp((const char *)targNode->name, "pack") == 0){
-      arg.argType = 1;
-      arg.ident = "...";
+      arg.argType = 2;
+      arg.ident = std::string("/*packsize")+
+	getProp(targNode, "packsize") + std::string("*/");
     }else if(strcmp((const char *)targNode->name, "expression")== 0){
       arg.argType = 1;
       arg.ident = "expression" ;

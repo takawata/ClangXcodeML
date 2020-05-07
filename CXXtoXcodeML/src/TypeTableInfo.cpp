@@ -333,6 +333,74 @@ makeInheritanceNode(TypeTableInfo &TTI, const CXXRecordDecl *RD) {
 }
 
 namespace {
+void commonTemplateArgument(xmlNodePtr templArgs,
+                            ArrayRef <TemplateArgument> args,
+                            TypeTableInfo &TTI)
+{
+  bool pack = false;
+  for (auto &&arg : args) {
+    assert(pack==false);
+    switch (arg.getKind()) {
+    case TemplateArgument::Null:
+      xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "null"));
+      break;
+    case TemplateArgument::Type: {
+      const auto typeNode = xmlNewNode(nullptr, BAD_CAST "typeName");
+      xmlNewProp(typeNode,
+                 BAD_CAST "ref",
+                 BAD_CAST TTI.getTypeName(arg.getAsType()).c_str());
+      xmlAddChild(templArgs, typeNode);
+      break;
+    }
+    case TemplateArgument::Declaration:
+      xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "declaration"));
+      break;
+    case TemplateArgument::NullPtr:
+      xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "nullptr"));
+      break;
+    case TemplateArgument::Integral:
+      {
+        const auto integNode = xmlNewNode(nullptr, BAD_CAST "integral");
+        xmlNewProp(integNode,
+                   BAD_CAST "value",
+                   BAD_CAST arg.getAsIntegral().toString(10).c_str());
+        xmlAddChild(templArgs, integNode);
+      }
+      break;
+    case TemplateArgument::Template:{
+      const auto tnode = xmlNewNode(nullptr, BAD_CAST "template");
+      auto tn = arg.getAsTemplate();
+      auto tnt = tn.getAsTemplateDecl();
+      //tnt->dump();
+      //std::cout <<getTypeName(tn) <<std:endl;
+      if(tnt != nullptr){
+        xmlNewProp(tnode,
+                   BAD_CAST "name",
+                   BAD_CAST tnt->getName().str().c_str());
+      }
+      xmlAddChild(templArgs, tnode);
+    }
+    case TemplateArgument::TemplateExpansion:
+      xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "template_expansion"));
+      break;
+    case TemplateArgument::Expression:{
+      const auto exprNode = xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "expression"));
+      const auto theExpr = arg.getAsExpr();
+    }
+      break;
+    case TemplateArgument::Pack:
+      {
+        auto tnode = xmlNewNode(nullptr, BAD_CAST "pack");
+        xmlNewProp(tnode, BAD_CAST "packsize",
+                   BAD_CAST (std::to_string(arg.pack_size())).c_str());
+        xmlAddChild(templArgs, tnode);
+        pack = true;
+        commonTemplateArgument(templArgs, arg.getPackAsArray(), TTI);
+      }
+      break;
+    }
+  }
+}
 
 void
 commonSetUpForRecordDecl(
@@ -351,60 +419,7 @@ commonSetUpForRecordDecl(
     xmlNewProp(node, BAD_CAST "is_template_instantiation", BAD_CAST "1");
     auto ST = CTS->getSpecializedTemplate();
     const auto templArgs = xmlNewNode(nullptr, BAD_CAST "templateArguments");
-    for (auto &&arg : CTS->getTemplateArgs().asArray()) {
-      switch (arg.getKind()) {
-      case TemplateArgument::Null:
-        xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "null"));
-        break;
-      case TemplateArgument::Type: {
-        const auto typeNode = xmlNewNode(nullptr, BAD_CAST "typeName");
-        xmlNewProp(typeNode,
-                   BAD_CAST "ref",
-                   BAD_CAST TTI.getTypeName(arg.getAsType()).c_str());
-        xmlAddChild(templArgs, typeNode);
-        break;
-      }
-      case TemplateArgument::Declaration:
-        xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "declaration"));
-        break;
-      case TemplateArgument::NullPtr:
-        xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "nullptr"));
-        break;
-      case TemplateArgument::Integral:
-        {
-        const auto integNode = xmlNewNode(nullptr, BAD_CAST "integral");
-        xmlNewProp(integNode,
-                   BAD_CAST "value",
-                   BAD_CAST arg.getAsIntegral().toString(10).c_str());
-        xmlAddChild(templArgs, integNode);
-        }
-        break;
-      case TemplateArgument::Template:{
-          const auto tnode = xmlNewNode(nullptr, BAD_CAST "template");
-          auto tn = arg.getAsTemplate();
-          auto tnt = tn.getAsTemplateDecl();
-          //tnt->dump();
-          //std::cout <<getTypeName(tn) <<std:endl;
-          if(tnt != nullptr){
-            xmlNewProp(tnode,
-                       BAD_CAST "name",
-                       BAD_CAST tnt->getName().str().c_str());
-          }
-          xmlAddChild(templArgs, tnode);
-      }
-      case TemplateArgument::TemplateExpansion:
-        xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "template_expansion"));
-        break;
-      case TemplateArgument::Expression:{
-        const auto exprNode = xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "expression"));
-        const auto theExpr = arg.getAsExpr();
-      }
-        break;
-      case TemplateArgument::Pack:
-        xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "pack"));
-        break;
-      }
-    }
+    commonTemplateArgument(templArgs, CTS->getTemplateArgs().asArray(), TTI);
     xmlAddChild(node, templArgs);
   }
   if (const auto CRD = dyn_cast<CXXRecordDecl>(RD)) {
@@ -771,62 +786,7 @@ TypeTableInfo::registerType(QualType T, xmlNodePtr *retNode, xmlNodePtr) {
                   BAD_CAST "name",
                   BAD_CAST namestr.c_str());
       const auto templArgs = xmlNewNode(nullptr, BAD_CAST "templateArguments");
-      for(auto arg : *TST){
-        switch (arg.getKind()) {
-        case TemplateArgument::Null:
-          xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "null"));
-          break;
-        case TemplateArgument::Type: {
-          const auto typeNode = xmlNewNode(nullptr, BAD_CAST "typeName");
-          xmlNewProp(typeNode,
-                     BAD_CAST "ref",
-                     BAD_CAST getTypeName(arg.getAsType()).c_str());
-          xmlAddChild(templArgs, typeNode);
-          break;
-        }
-        case TemplateArgument::Declaration:
-          xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "declaration"));
-          break;
-        case TemplateArgument::NullPtr:
-          xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "nullptr"));
-          break;
-        case TemplateArgument::Integral:
-          {
-            const auto integNode = xmlNewNode(nullptr, BAD_CAST "integral");
-            xmlNewProp(integNode,
-                       BAD_CAST "value",
-                       BAD_CAST arg.getAsIntegral().toString(10).c_str());
-            xmlAddChild(templArgs, integNode);
-          }
-          break;
-        case TemplateArgument::Template:{
-          const auto tnode = xmlNewNode(nullptr, BAD_CAST "template");
-          auto tn = arg.getAsTemplate();
-          auto tnt = tn.getAsTemplateDecl();
-          //tnt->dump();
-          //std::cout <<getTypeName(tn) <<std:endl;
-          if(tnt != nullptr){
-            xmlNewProp(tnode,
-                       BAD_CAST "name",
-                       BAD_CAST tnt->getName().str().c_str());
-          }
-          xmlAddChild(templArgs, tnode);
-        }
-          break;
-        case TemplateArgument::TemplateExpansion:
-          xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "template_expansion"));
-          break;
-        case TemplateArgument::Expression:{
-          xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "expression"));
-          break;
-        }
-        case TemplateArgument::Pack:
-          {
-          xmlAddChild(templArgs, xmlNewNode(nullptr, BAD_CAST "pack"));
-          }
-          break;
-        }
-      }
+      commonTemplateArgument(templArgs, TST->template_arguments(), *this);
       xmlAddChild(Node, templArgs);
       pushType(T, Node);
       break;

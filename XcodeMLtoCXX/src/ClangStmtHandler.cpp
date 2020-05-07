@@ -569,7 +569,9 @@ DEFINE_STMTHANDLER(WhileStmtProc) {
   const auto body = createNode(node, "clangStmt[2]", w, src);
   return makeTokenNode("while") + wrapWithParen(cond) + makeCompoundStmt(body);
 }
-
+DEFINE_STMTHANDLER(SizeOfPackExprProc){
+  return makeTokenNode("sizeof...()");
+}
 } // namespace
 
 const ClangStmtHandlerType ClangStmtHandler("class",
@@ -627,4 +629,5 @@ const ClangStmtHandlerType ClangStmtHandler("class",
         std::make_tuple("SwitchStmt", SwitchStmtProc),
         std::make_tuple("UnaryOperator", UnaryOperatorProc),
         std::make_tuple("WhileStmt", WhileStmtProc),
+	std::make_tuple("SizeofPackExpr", SizeOfPackExprProc),
     });
