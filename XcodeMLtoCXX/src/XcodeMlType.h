@@ -599,8 +599,16 @@ protected:
   AtomicType(const AtomicType &);
 };
 class DependentTemplateSpecializationType: public Type{
+  const CodeFragment name;
+  const llvm::Optional<DataTypeIdent> scopetype;
+  const llvm::Optional<TemplateArgList> templateArgs;
+protected:
+  DependentTemplateSpecializationType(const DependentTemplateSpecializationType &);
 public:
-  DependentTemplateSpecializationType(const DataTypeIdent&);
+  DependentTemplateSpecializationType(const DataTypeIdent&,
+				      const llvm::Optional<DataTypeIdent> &,
+				      const CodeFragment &,
+				      const llvm::Optional<TemplateArgList> &);
   ~DependentTemplateSpecializationType() override = default;
   CodeFragment makeDeclaration
   (CodeFragment, const TypeTable &, const NnsTable &) override;
@@ -672,8 +680,11 @@ TypeRef makeTemplateSpecializationType(const DataTypeIdent& ,
 				       );
 TypeRef makeOtherType(const DataTypeIdent &);
 TypeRef makeDeclType(const DataTypeIdent &);
-TypeRef makeDependentNameType(const DataTypeIdent &, const DataTypeIdent &, const DataTypeIdent &);
-TypeRef makeDependentTemplateSpecializationType(const DataTypeIdent & );
+  TypeRef makeDependentNameType(const DataTypeIdent &, const DataTypeIdent &, const DataTypeIdent &);
+TypeRef makeDependentTemplateSpecializationType(const DataTypeIdent & ,
+						const llvm::Optional<DataTypeIdent> & ,
+						const CodeFragment &,
+						const llvm::Optional<TemplateArgList > &);
 TypeRef makeAtomicType(const DataTypeIdent &, const DataTypeIdent &);
 TypeRef makePackExpansionType(const DataTypeIdent &, const DataTypeIdent &);
 TypeRef makeUnaryTransformType(const DataTypeIdent &, const DataTypeIdent &);

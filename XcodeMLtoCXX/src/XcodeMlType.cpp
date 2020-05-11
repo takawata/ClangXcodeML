@@ -903,16 +903,23 @@ TemplateSpecializationType::classof(const Type *T) {
   return T->getKind() == TypeKind::TemplateSpecialization;
 }
 
-DependentTemplateSpecializationType::DependentTemplateSpecializationType(const DataTypeIdent &ident/*, const CodeFragment &name_, const llvm::Optional<TemplateArgList> &Ta*/)
-  : Type(TypeKind::DependentTemplateSpecialization, ident)/*, name(name_),  templateArgs(Ta)*/{
+DependentTemplateSpecializationType::DependentTemplateSpecializationType(const DataTypeIdent &ident, const llvm::Optional<DataTypeIdent> &scopetype_, const CodeFragment &name_, const llvm::Optional<TemplateArgList> &Ta)
+  : Type(TypeKind::DependentTemplateSpecialization, ident), name(name_),scopetype(scopetype_),  templateArgs(Ta){
 }
+
+DependentTemplateSpecializationType::DependentTemplateSpecializationType
+(const DependentTemplateSpecializationType &dt):Type(dt),name(dt.name),templateArgs(dt.templateArgs){}
 
 CodeFragment
 DependentTemplateSpecializationType::makeDeclaration(
     CodeFragment var, const TypeTable &typeTable, const NnsTable &nnsTable) {
-#if 0
   std::vector<CodeFragment> targs;
-
+  auto comment = makeVoidNode();
+  auto scope = makeVoidNode();
+  if(scopetype.hasValue()){
+    auto T = typeTable.at(*scopetype);
+    scope = T->makeDeclaration(makeVoidNode(), typeTable, nnsTable);
+  }
   for (auto &&dtident : *templateArgs) {
     CodeFragment arg;
     switch(dtident.argType){
@@ -931,12 +938,10 @@ DependentTemplateSpecializationType::makeDeclaration(
       break;
     }
   }
-  const auto list = makeTokenNode("<") + join(",", targs) + makeTokenNode(">")
-  + comment;
+  const auto list =  makeTokenNode("<") + join(",", targs) + makeTokenNode(">")
+    + comment ;
 
-  return name + list;
-#endif
-  return makeTokenNode("/*DependentTemplateSpesialization*/");
+  return scope + makeTokenNode("::template  /*DTS*/") +  name + list;
 }
 
 Type *
@@ -1263,8 +1268,13 @@ makeTemplateTypeParm(const DataTypeIdent &dtident, const CodeFragment &name, int
 }
 
 TypeRef
-makeDependentTemplateSpecializationType(const DataTypeIdent &dtident) {
-  return std::make_shared<DependentTemplateSpecializationType>(dtident);
+makeDependentTemplateSpecializationType(const DataTypeIdent &dtident,
+					const llvm::Optional<DataTypeIdent> &scopetype,
+					const CodeFragment &name,
+					const llvm::Optional<TemplateArgList>
+					&Ta) {
+  return std::make_shared<DependentTemplateSpecializationType>
+    (dtident, scopetype,  name, Ta);
 }
 TypeRef
 makePackExpansionType(const DataTypeIdent &dtident, const DataTypeIdent &pattern) {

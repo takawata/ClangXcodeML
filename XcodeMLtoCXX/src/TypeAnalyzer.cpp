@@ -256,7 +256,13 @@ DEFINE_TA(otherTypeProc){
 DEFINE_TA(dependentTemplateSpecializationTypeProc){
   const auto dtident = getProp(node, "type");
   const auto name = getContent(findFirst(node, "name", ctxt));
-  map[dtident] = XcodeMl::makeDependentTemplateSpecializationType(dtident);
+  const auto targs = getTemplateArgs(node, ctxt);
+  const auto scopetype = getPropOrNull(node, "scopetype");
+  map[dtident] = XcodeMl::makeDependentTemplateSpecializationType
+    (dtident,
+     scopetype,
+     makeTokenNode(name) ,
+     targs);
 }
 
 DEFINE_TA(atomicTypeProc){
