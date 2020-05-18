@@ -889,7 +889,7 @@ TemplateSpecializationType::makeDeclaration(
   const auto list = makeTokenNode("<") + join(",", targs) + makeTokenNode(">")
   + comment;
 
-  return name + list;
+  return name + list + var;
 }
 Type *
 TemplateSpecializationType::clone() const {
@@ -919,6 +919,7 @@ DependentTemplateSpecializationType::makeDeclaration(
   if(scopetype.hasValue()){
     auto T = typeTable.at(*scopetype);
     scope = T->makeDeclaration(makeVoidNode(), typeTable, nnsTable);
+    scope = scope + makeTokenNode("::template");
   }
   for (auto &&dtident : *templateArgs) {
     CodeFragment arg;
@@ -941,7 +942,7 @@ DependentTemplateSpecializationType::makeDeclaration(
   const auto list =  makeTokenNode("<") + join(",", targs) + makeTokenNode(">")
     + comment ;
 
-  return scope + makeTokenNode("::template  /*DTS*/") +  name + list;
+  return makeTokenNode("/*DTS*/")+ scope +  name + list;
 }
 
 Type *
