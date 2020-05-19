@@ -154,9 +154,10 @@ makeBases(const XcodeMl::ClassType &T, SourceInfo &src) {
 	  desc = TT->makeDeclaration(CXXCodeGen::makeVoidNode(),
 				     src.typeTable, src.nnsTable);
 	}else if(const auto DN = llvm::dyn_cast<DependentNameType>(T.get())){
-	  desc = CXXCodeGen::makeTokenNode("/**/");
+	  desc = DN->makeDeclaration(CXXCodeGen::makeVoidNode(),
+				     src.typeTable, src.nnsTable);
 	}else if(const auto DT = llvm::dyn_cast<DeclType>(T.get())){
-	  desc = CXXCodeGen::makeTokenNode("/**/");
+	  desc = CXXCodeGen::makeTokenNode("/*Decltype*/");
 	}else{
 	  throw std::runtime_error("Cannot interpret base");
 	}
