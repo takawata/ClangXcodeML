@@ -149,7 +149,18 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
         "hexadecimalNotation", unsignedToHexString(CL->getValue()).c_str());
     newProp("token", getSpelling(CL, mangleContext->getASTContext()).c_str());
   }
-
+  if (auto TTE = dyn_cast<TypeTraitExpr>(S)){
+      const char *ttfunc[] = {
+#define TYPE_TRAIT_1(I, E, K) [UTT_##E] = #I ,
+#define TYPE_TRAIT_2(I, E, K) [BTT_##E] = #I ,
+#define TYPE_TRAIT_N(I, E, K) [TT_##E] = #I ,
+#include "clang/Basic/TokenKinds.def"
+#undef TYPE_TRAIT_1
+#undef TYPE_TRAIT_2
+#undef TYPE_TRAIT_N
+      };
+      newProp("funcname", ttfunc[TTE->getTrait()]);
+  }
   if (auto IL = dyn_cast<IntegerLiteral>(S)) {
     const unsigned INIT_BUFFER_SIZE = 32;
     SmallVector<char, INIT_BUFFER_SIZE> buffer;
@@ -355,6 +366,7 @@ XMLRecursiveASTVisitor::PreVisitDecl(Decl *D) {
   if (auto TD = dyn_cast<TypeDecl>(D)) {
     const auto T = QualType(TD->getTypeForDecl(), 0);
     newProp("xcodemlType", typetableinfo.getTypeName(T).c_str());
+
   }
   if(auto TTPD = dyn_cast<TemplateTemplateParmDecl>(D)){
       const auto depth = TTPD->getDepth();

@@ -564,6 +564,19 @@ DEFINE_STMTHANDLER(UnaryOperatorProc) {
   return wrapWithParen(postfix ? expr + op : op + expr);
 }
 
+DEFINE_STMTHANDLER(TypeTraitExprProc) {
+  const auto funcName = getProp(node, "funcname");
+  const auto argNodes = findNodes(node, "clangTypeLoc", src.ctxt);
+  std::vector<XcodeMl::CodeFragment> args;
+  for (auto &&argNode : argNodes) {
+    args.push_back(w.walk(argNode, src));
+  }
+
+  return makeTokenNode("/*TTE*/")+
+    makeTokenNode(funcName) + wrapWithParen(join(",", args));
+}
+  
+  
 DEFINE_STMTHANDLER(WhileStmtProc) {
   const auto cond = createNode(node, "clangStmt[1]", w, src);
   const auto body = createNode(node, "clangStmt[2]", w, src);
@@ -572,7 +585,7 @@ DEFINE_STMTHANDLER(WhileStmtProc) {
 DEFINE_STMTHANDLER(CXXPseudoDestructorExprProc){
     const auto type = createNode(node, "clangTypeLoc", w, src);
     const auto body = createNode(node, "clangStmt[1]", w, src);
-    return makeTokenNode("/*CPDE*/")+wrapWithParen(body)+makeTokenNode(".~")+wrapWithParen(type);
+    return makeTokenNode("/*CPDE*/")+wrapWithParen(body)+makeTokenNode(".~")+type;
 }
 DEFINE_STMTHANDLER(SizeOfPackExprProc){
   return makeTokenNode("sizeof...()");
@@ -635,5 +648,6 @@ const ClangStmtHandlerType ClangStmtHandler("class",
         std::make_tuple("UnaryOperator", UnaryOperatorProc),
         std::make_tuple("WhileStmt", WhileStmtProc),
 	std::make_tuple("SizeofPackExpr", SizeOfPackExprProc),
+	std::make_tuple("TypeTraitExpr", TypeTraitExprProc),
 	std::make_tuple("CXXPseudoDestructorExpr", CXXPseudoDestructorExprProc),
     });
