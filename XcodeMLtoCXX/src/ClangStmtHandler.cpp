@@ -92,12 +92,39 @@ DEFINE_STMTHANDLER(callCodeBuilder) {
   return makeInnerNode(ProgramBuilder.walkChildren(node, src));
 }
 
+DEFINE_STMTHANDLER(UnresolvedLookupExprProc){
+  return makeTokenNode("/*Unresolved LookupExpr*/")
+    + callCodeBuilder(node, w ,src);
+}
+
+DEFINE_STMTHANDLER(UnresolvedMemberExprProc){
+  return makeTokenNode("/*Unresolved MemberExpr*/")
+    + callCodeBuilder(node, w ,src);
+}
+DEFINE_STMTHANDLER(CXXTypeidExprProc){
+  return makeTokenNode("typeid") +
+    wrapWithParen(callCodeBuilder(node, w ,src));
+}
+DEFINE_STMTHANDLER(CXXNoexceptExprProc){
+  return makeTokenNode("noexcept") +
+    wrapWithParen(callCodeBuilder(node, w ,src));
+}
+
+DEFINE_STMTHANDLER(GenericSelectionExprProc){
+  return makeTokenNode("/*GenericSelection*/");
+}
 DEFINE_STMTHANDLER(ArraySubscriptExprProc) {
   const auto array = createNode(node, "clangStmt[1]", w, src);
   const auto index = createNode(node, "clangStmt[2]", w, src);
   return wrapWithParen(array) + wrapWithSquareBracket(index);
 }
-
+DEFINE_STMTHANDLER(GCCAsmStmtProc){
+  const auto stmt = createNode(node, "clangStmt[1]", w, src);
+  const auto attr = createNode(node, "clangStmt[2]", w, src);
+  const auto arg = createNode(node, "clangStmt[3]", w, src);
+  return makeTokenNode("asm") +
+    wrapWithParen(stmt +  makeTokenNode(":") + attr + wrapWithParen(arg));
+}
 DEFINE_STMTHANDLER(BinaryConditionalOperatorProc) {
   const auto lhs = createNode(node, "clangStmt[1]", w, src);
   const auto rhs = createNode(node, "clangStmt[4]", w, src);
@@ -588,7 +615,7 @@ DEFINE_STMTHANDLER(CXXPseudoDestructorExprProc){
     return makeTokenNode("/*CPDE*/")+wrapWithParen(body)+makeTokenNode(".~")+type;
 }
 DEFINE_STMTHANDLER(SizeOfPackExprProc){
-  return makeTokenNode("sizeof...()");
+  return makeTokenNode("/**/sizeof...()");
 }
 } // namespace
 
@@ -596,6 +623,25 @@ const ClangStmtHandlerType ClangStmtHandler("class",
     cxxgen::makeInnerNode,
     callCodeBuilder,
     {
+        std::make_tuple("ParenListExpr", callCodeBuilder),
+	std::make_tuple("ParenExpr", callCodeBuilder),
+	std::make_tuple("ImplicitCastExpr", callCodeBuilder),
+	std::make_tuple("ImplicitValueInitExpr", callCodeBuilder),
+	std::make_tuple("UnresolvedLookupExpr", UnresolvedLookupExprProc),
+	std::make_tuple("UnresolvedMemberExpr", UnresolvedMemberExprProc),
+	std::make_tuple("UnaryExprOrTypeTraitExpr", callCodeBuilder),
+	std::make_tuple("NullStmt", callCodeBuilder),
+	std::make_tuple("ConstantExpr", callCodeBuilder),
+	std::make_tuple("CXXTypeidExpr", CXXTypeidExprProc),
+	std::make_tuple("CXXDefaultArgExpr", callCodeBuilder),
+	std::make_tuple("MaterializeTemporaryExpr", callCodeBuilder),
+	std::make_tuple("ExprWithCleanups", callCodeBuilder),
+	std::make_tuple("CXXBindTemporaryExpr", callCodeBuilder),
+	std::make_tuple("SizeOfPackExpr", SizeOfPackExprProc),
+	std::make_tuple("GenericSelectionExpr", GenericSelectionExprProc),
+	std::make_tuple("GCCAsmStmt", GCCAsmStmtProc),
+	std::make_tuple("AttributedStmt", callCodeBuilder),
+	std::make_tuple("CXXNoexceptExpr", CXXNoexceptExprProc),
         std::make_tuple("ArraySubscriptExpr", ArraySubscriptExprProc),
         std::make_tuple(
             "BinaryConditionalOperator", BinaryConditionalOperatorProc),
@@ -647,7 +693,6 @@ const ClangStmtHandlerType ClangStmtHandler("class",
         std::make_tuple("SwitchStmt", SwitchStmtProc),
         std::make_tuple("UnaryOperator", UnaryOperatorProc),
         std::make_tuple("WhileStmt", WhileStmtProc),
-	std::make_tuple("SizeofPackExpr", SizeOfPackExprProc),
 	std::make_tuple("TypeTraitExpr", TypeTraitExprProc),
 	std::make_tuple("CXXPseudoDestructorExpr", CXXPseudoDestructorExprProc),
     });
