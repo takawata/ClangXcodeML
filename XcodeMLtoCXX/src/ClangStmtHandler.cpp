@@ -615,7 +615,11 @@ DEFINE_STMTHANDLER(CXXPseudoDestructorExprProc){
     return makeTokenNode("/*CPDE*/")+wrapWithParen(body)+makeTokenNode(".~")+type;
 }
 DEFINE_STMTHANDLER(SizeOfPackExprProc){
-  return makeTokenNode("/**/sizeof...()");
+  const auto pack = getProp(node, "name");
+  const auto packname = makeDecl(src.typeTable.at(pack),
+				 CXXCodeGen::makeVoidNode(),
+			  src.typeTable, src.nnsTable);
+  return makeTokenNode("sizeof...") + wrapWithParen(packname);
 }
 } // namespace
 

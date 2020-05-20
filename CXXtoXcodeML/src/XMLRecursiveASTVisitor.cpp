@@ -173,7 +173,15 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
     std::string decimalNotation = IL->getValue().toString(10, true);
     newProp("decimalNotation", decimalNotation.c_str());
   }
-
+  if (auto SOPE = dyn_cast<SizeOfPackExpr>(S)){
+      auto ND = SOPE->getPack();
+      auto Pack = dyn_cast<TypeDecl>(ND);
+      assert(Pack);
+      if(Pack){
+          auto T = QualType(Pack->getTypeForDecl(), 0);
+          newProp("name", typetableinfo.getTypeName(T).c_str());
+      }
+  }
   if (auto FL = dyn_cast<FloatingLiteral>(S)) {
     const unsigned INIT_BUFFER_SIZE = 32;
     SmallVector<char, INIT_BUFFER_SIZE> buffer;
@@ -263,8 +271,7 @@ XMLRecursiveASTVisitor::VisitAttr(Attr *A) {
   }
   newComment(std::string("Attr:") + A->getSpelling());
   newChild("gccAttribute");
-
-  newProp("name", contentBySource(A->getLocation(), A->getLocation()).c_str());
+  newProp("name", A->getSpelling());
 
   std::string prettyprint;
   raw_string_ostream OS(prettyprint);
