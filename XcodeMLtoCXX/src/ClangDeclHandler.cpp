@@ -544,6 +544,14 @@ DEFINE_DECLHANDLER(TypeAliasTemplateProc){
   return makeTokenNode("template") + makeTokenNode("<") + join(",", params)
     + makeTokenNode(">") + w.walk(body, src) ;
 }
+DEFINE_DECLHANDLER(StaticAssertProc)
+{
+  auto args = findNodes(node, "clangStmt", src.ctxt);
+  auto cond = w.walk(args[0], src);
+  auto msg = w.walk(args[1], src);
+  return makeTokenNode("static_assert(") + cond +makeTokenNode(",") +
+    msg + makeTokenNode(")");
+}
 DEFINE_DECLHANDLER(TypeAliasProc) {
 
   const auto dtident = getProp(node, "xcodemlTypedefType");
@@ -715,5 +723,6 @@ const ClangDeclHandlerType ClangDeclHandler("class",
 	std::make_tuple("TypeAliasTemplate", TypeAliasTemplateProc),
         std::make_tuple("Typedef", TypedefProc),
         std::make_tuple("UsingDirective", UsingDirectiveProc),
+	std::make_tuple("StaticAssert", StaticAssertProc),
         std::make_tuple("Var", VarProc),
     });
