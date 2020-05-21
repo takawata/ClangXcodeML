@@ -173,6 +173,20 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
     std::string decimalNotation = IL->getValue().toString(10, true);
     newProp("decimalNotation", decimalNotation.c_str());
   }
+  if (auto UME = dyn_cast<UnresolvedMemberExpr>(S)){
+      auto DNI = UME->getMemberNameInfo();
+      newBoolProp("is_arrow", UME->isArrow());
+      auto save = curNode;
+      TraverseDeclarationNameInfo(DNI);
+      auto curNode = save;
+  }
+  if (auto ULE = dyn_cast<UnresolvedLookupExpr>(S)){
+      auto DNI = ULE->getNameInfo();
+      auto save = curNode;
+      TraverseDeclarationNameInfo(DNI);
+      auto curNode = save;
+  }
+
   if (auto SOPE = dyn_cast<SizeOfPackExpr>(S)){
       auto ND = SOPE->getPack();
       auto Pack = dyn_cast<TypeDecl>(ND);

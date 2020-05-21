@@ -93,13 +93,43 @@ DEFINE_STMTHANDLER(callCodeBuilder) {
 }
 
 DEFINE_STMTHANDLER(UnresolvedLookupExprProc){
-  return makeTokenNode("/*Unresolved LookupExpr*/")
-    + callCodeBuilder(node, w ,src);
+  auto symNode = findFirst(node,"clangDeclarationNameInfo", src.ctxt);
+  auto sym = makeTokenNode(getContent(symNode));
+  const auto nameSpecNode =
+      findFirst(node, "clangNestedNameSpecifier", src.ctxt);
+  auto ns = CXXCodeGen::makeVoidNode();
+
+  if (nameSpecNode) {
+    ns = ClangNestedNameSpecHandler.walk(nameSpecNode, src);
+  }
+
+  const auto TAL = findNodes(node, "TemplateArgumentLoc", src.ctxt);
+  if(TAL.size() != 0){
+    std::vector<CodeFragment> args;
+    for(auto &&talNodes : TAL){
+      const auto templArgNodes = findNodes(talNodes, "*", src.ctxt);
+      for (auto &&argNode : templArgNodes) {
+	args.push_back(w.walk(argNode, src));
+      }
+    }
+    retur ns + sym + makeTokenNode("<") + join(",", args) + makeTokenNode(">");
+  }
+
+  return ns +sym;
 }
 
 DEFINE_STMTHANDLER(UnresolvedMemberExprProc){
-  return makeTokenNode("/*Unresolved MemberExpr*/")
-    + callCodeBuilder(node, w ,src);
+  const auto baseNode = findFirst(node, "clangStmt", src.ctxt);
+  const auto memberNode = findFirst(node, "clangDeclarationNameInfo", src.ctxt);
+  const auto isArrow = isTrueProp(node, "is_arrow", false);
+  const auto member = makeTokenNode(getContent(memberNode));
+  CodeFragment base;
+  if(baseNode){
+    base = w.walk(baseNode, src);
+  }else{
+    base = makeTokenNode("this");
+  }
+  return base + makeTokenNode(isArrow ? "->": ".") + member;
 }
 DEFINE_STMTHANDLER(CXXTypeidExprProc){
   return makeTokenNode("typeid") +
@@ -401,7 +431,7 @@ DEFINE_STMTHANDLER(DeclRefExprProc) {
   return name.toString(src.typeTable, src.nnsTable);
 }
 DEFINE_STMTHANDLER(DependentScopeDeclRefExprProc) {
-  const auto memberNode = findFirst(node, "clangDeclarationNameInfo[@class='Identifier']", src.ctxt);
+  const auto memberNode = findFirst(node, "clangDeclarationNameInfo", src.ctxt);
   const auto nsnode = findFirst(node, "clangNestedNameSpecifier",
 				src.ctxt);
   const auto member = makeTokenNode(getContent(memberNode));
@@ -531,7 +561,7 @@ DEFINE_STMTHANDLER(CXXDependentScopeMemberExprProc){
 				  src.ctxt);
     expr =  expr + ClangNestedNameSpecHandler.walk(nsnode, src);
   }
-    const auto memberNode = findFirst(node, "clangDeclarationNameInfo[@class='Identifier']", src.ctxt);
+    const auto memberNode = findFirst(node, "clangDeclarationNameInfo", src.ctxt);
     const auto member = makeTokenNode(getContent(memberNode));
 
     return expr + makeTokenNode(isArrow ? "->" : ".") + member;
