@@ -112,7 +112,7 @@ DEFINE_STMTHANDLER(UnresolvedLookupExprProc){
 	args.push_back(w.walk(argNode, src));
       }
     }
-    retur ns + sym + makeTokenNode("<") + join(",", args) + makeTokenNode(">");
+    return ns + sym + makeTokenNode("<") + join(",", args) + makeTokenNode(">");
   }
 
   return ns +sym;
@@ -141,7 +141,18 @@ DEFINE_STMTHANDLER(CXXNoexceptExprProc){
 }
 
 DEFINE_STMTHANDLER(GenericSelectionExprProc){
-  return makeTokenNode("/*GenericSelection*/");
+  const auto typeparm = createNode(node, "clangStmt[@class='ParenExpr']",
+				   w, src);
+  const auto types = findNodes(node, "clangTypeLoc", src.ctxt);
+  const auto stmts = findNodes(node, "clangStmt", src.ctxt);
+  auto defs = CXXCodeGen::makeVoidNode();
+  assert(types.size() == stmts.size() - 1);
+  for (size_t i = 0;  i < types.size(); i++){
+    defs = defs + w.walk(types[i], src) + makeTokenNode(": ") +
+      w.walk(stmts[i], src) + makeTokenNode(",\n");
+  }
+  defs = defs + makeTokenNode("default:") + w.walk(stmts[types.size()],src);
+  return makeTokenNode("_Generic")+wrapWithParen(typeparm)+wrapWithBrace(defs);
 }
 DEFINE_STMTHANDLER(ArraySubscriptExprProc) {
   const auto array = createNode(node, "clangStmt[1]", w, src);
