@@ -60,10 +60,6 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
       newProp("clangBinOpToken", opName.str().c_str());
     }
   }
-  const GenericSelectionExpr *GSE = dyn_cast<const GenericSelectionExpr>(S);
-  if(GSE) {
-      GSE->dump();
-  }
   const UnaryOperator *UO = dyn_cast<const UnaryOperator>(S);
   if (UO) {
     auto namePtr = UOtoElemName(UO->getOpcode());
