@@ -146,10 +146,13 @@ DEFINE_STMTHANDLER(GenericSelectionExprProc){
   const auto types = findNodes(node, "clangTypeLoc", src.ctxt);
   const auto stmts = findNodes(node, "clangStmt[position() > 1]", src.ctxt);
   auto defs = CXXCodeGen::makeVoidNode();
-  assert(types.size() == stmts.size());
+  assert(types.size() <= stmts.size());
   for (size_t i = 0;  i < types.size(); i++){
     defs = defs + w.walk(types[i], src) + makeTokenNode(": ") +
       w.walk(stmts[i], src) + makeTokenNode(",\n");
+  }
+  if(types.size() < stmts.size()){
+    defs = defs + makeTokenNode("default:") + w.walk(stmts[types.size()], src);
   }
   return makeTokenNode("_Generic")+wrapWithParen(typeparm)+wrapWithBrace(defs);
 }
@@ -655,11 +658,8 @@ DEFINE_STMTHANDLER(CXXPseudoDestructorExprProc){
     return makeTokenNode("/*CPDE*/")+wrapWithParen(body)+makeTokenNode(".~")+type;
 }
 DEFINE_STMTHANDLER(SizeOfPackExprProc){
-  const auto pack = getProp(node, "name");
-  const auto packname = makeDecl(src.typeTable.at(pack),
-				 CXXCodeGen::makeVoidNode(),
-			  src.typeTable, src.nnsTable);
-  return makeTokenNode("sizeof...") + wrapWithParen(packname);
+  const auto pack = makeTokenNode(getContent(node));
+  return makeTokenNode("sizeof...") + CXXCodeGen::wrapWithParen(pack);
 }
 } // namespace
 

@@ -60,7 +60,10 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
       newProp("clangBinOpToken", opName.str().c_str());
     }
   }
-
+  const GenericSelectionExpr *GSE = dyn_cast<const GenericSelectionExpr>(S);
+  if(GSE) {
+      GSE->dump();
+  }
   const UnaryOperator *UO = dyn_cast<const UnaryOperator>(S);
   if (UO) {
     auto namePtr = UOtoElemName(UO->getOpcode());
@@ -176,24 +179,24 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
   if (auto UME = dyn_cast<UnresolvedMemberExpr>(S)){
       auto DNI = UME->getMemberNameInfo();
       newBoolProp("is_arrow", UME->isArrow());
-      auto save = curNode;
       TraverseDeclarationNameInfo(DNI);
-      auto curNode = save;
   }
   if (auto ULE = dyn_cast<UnresolvedLookupExpr>(S)){
       auto DNI = ULE->getNameInfo();
-      auto save = curNode;
       TraverseDeclarationNameInfo(DNI);
-      auto curNode = save;
   }
 
   if (auto SOPE = dyn_cast<SizeOfPackExpr>(S)){
       auto ND = SOPE->getPack();
-      auto Pack = dyn_cast<TypeDecl>(ND);
-      assert(Pack);
-      if(Pack){
-          auto T = QualType(Pack->getTypeForDecl(), 0);
-          newProp("name", typetableinfo.getTypeName(T).c_str());
+      if(auto typePack = dyn_cast<TypeDecl>(ND)){
+          auto T = QualType(typePack->getTypeForDecl(), 0);
+          const auto TTP = dyn_cast<TemplateTypeParmType>(T);
+          assert(TTP);
+          auto nameNode = makeNameNode(typetableinfo, TTP);
+          xmlAddChild(curNode, nameNode);
+      }else{
+          auto nameNode = makeNameNode(typetableinfo, ND);
+          xmlAddChild(curNode, nameNode);
       }
   }
   if (auto FL = dyn_cast<FloatingLiteral>(S)) {
@@ -274,6 +277,7 @@ XMLRecursiveASTVisitor::VisitTypeLoc(TypeLoc TL) {
   newProp("class", NameForTypeLoc(TL));
   const auto T = TL.getType();
   newProp("type", typetableinfo.getTypeName(T).c_str());
+
   return true;
 }
 
