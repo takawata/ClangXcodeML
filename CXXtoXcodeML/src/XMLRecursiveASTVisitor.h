@@ -56,8 +56,11 @@ public:                                                         \
     (void) S;                                                   \
     return true;                                                \
   }
-
   DISPATCHER(Stmt, clang::Stmt *);
+  bool TraverseQualifiedTypeLoc(clang::QualifiedTypeLoc TL){
+      getDerived().VisitTypeLoc(TL);
+      return true;
+  }
   DISPATCHER(TypeLoc, clang::TypeLoc);
   DISPATCHER(Attr, clang::Attr *);
     // DISPATCHER(Decl, clang::Decl *);
