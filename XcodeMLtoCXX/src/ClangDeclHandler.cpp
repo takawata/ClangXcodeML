@@ -182,6 +182,20 @@ isTemplateParam(xmlNodePtr node) {
       || std::equal(kind.begin(), kind.end(), "TemplateTemplateParm");
 }
 
+static CodeFragment
+emitAttribute(xmlNodePtr node,
+	      const CodeBuilder &w,
+	      SourceInfo &src)
+{
+  const auto attrNodes = findNodes(node, "gccAttribute", src.ctxt);
+  auto  attrs = CXXCodeGen::makeVoidNode();
+  for(auto &&it : attrNodes){
+    attrs = attrs + ProgramBuilder.walk(it, src);
+  }
+
+  return attrs;
+}
+
 CodeFragment
 emitClassDefinition(xmlNodePtr node,
     const CodeBuilder &w,
@@ -313,10 +327,11 @@ DEFINE_DECLHANDLER(CXXRecordProc) {
   if (isTrueProp(node, "is_this_declaration_a_definition", false)) {
     return emitClassDefinition(node, ClassDefinitionBuilder, src, *classT);
   }
+  auto attrs = emitAttribute(node, w, src);
 
   /* forward declaration */
   const auto classKey = getClassKey(classT->classKind());
-  return makeTokenNode(classKey) + nameSpelling;
+  return makeTokenNode(classKey) + nameSpelling + attrs;
 }
 
 DEFINE_DECLHANDLER(emitInlineMemberFunction) {
@@ -334,12 +349,13 @@ DEFINE_DECLHANDLER(emitInlineMemberFunction) {
   const auto paramNames = getParamNames(node, src);
   acc = acc + makeFunctionDeclHead(node, paramNames, src);
   acc = acc + makeMemberInitList(node, src);
-
+  auto attrs = emitAttribute(node, w, src);
+  
   if (const auto bodyNode = findFirst(node, "clangStmt", src.ctxt)) {
     const auto body = ProgramBuilder.walk(bodyNode, src);
-    return acc + body;
+    return acc + attrs + body;
   } else if (isTrueProp(node, "is_pure", false)) {
-    return acc + makeTokenNode("=") + makeTokenNode("0");
+    return acc + attrs + makeTokenNode("=") + makeTokenNode("0");
   }
   return acc;
 }
@@ -393,7 +409,9 @@ DEFINE_DECLHANDLER(FieldDeclProc) {
     name = getUnqualIdFromNameNode(nameNode)->toString(
         src.typeTable, src.nnsTable);
   }
-  return makeDecl(T, name, src.typeTable, src.nnsTable) + bits;
+  auto attrs = emitAttribute(node, w, src);
+
+  return makeDecl(T, name, src.typeTable, src.nnsTable) + bits + attrs;
 }
 
 DEFINE_DECLHANDLER(FriendDeclProc) {
@@ -415,7 +433,8 @@ DEFINE_DECLHANDLER(FunctionProc) {
   const auto paramNames = getParamNames(node, src);
   auto acc = makeFunctionDeclHead(node, paramNames, src, true);
   acc = acc + makeMemberInitList(node, src);
-
+  auto attrs = emitAttribute(node, w, src);
+  acc = acc + attrs;
   if (const auto bodyNode = findFirst(node, "clangStmt", src.ctxt)) {
     const auto body = w.walk(bodyNode, src);
     acc = acc + body;
@@ -629,7 +648,7 @@ emitVarDecl(xmlNodePtr node,
   const auto T = src.typeTable.at(dtident);
   CodeFragment decl;
   decl = makeSpecifier(node, is_in_class_scope)
-      + T->makeDeclaration(name, src.typeTable, src.nnsTable)
+    + T->makeDeclaration(name, src.typeTable, src.nnsTable)
     + makeVariableArraySize(node, src, w);
 
   const auto initializerNode = findFirst(node, "clangStmt", src.ctxt);

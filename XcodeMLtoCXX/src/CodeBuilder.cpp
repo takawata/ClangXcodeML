@@ -567,6 +567,13 @@ DEFINE_CB(varDeclProc) {
   return wrapWithLangLink(acc, node, src);
 }
 
+DEFINE_CB(gccAttrProc){
+  const auto nameProp = getProp(node, "name");
+  const auto body = ProgramBuilder.walkChildren(node, src);
+  return makeTokenNode("/*gccattr")+makeTokenNode(nameProp)+
+    makeTokenNode(":") + makeInnerNode(body)+makeTokenNode("*/");
+}
+
 DEFINE_CB(emitDataMemberDecl) {
   const auto nameNode = findFirst(node, "name", src.ctxt);
   const auto name = getUnqualIdFromNameNode(nameNode);
@@ -744,7 +751,7 @@ const CodeBuilder ProgramBuilder("ProgramBuilder",
         std::make_tuple("returnStatement", returnStatementProc),
         std::make_tuple("varDecl", varDeclProc),
         std::make_tuple("value", valueProc),
-
+	std::make_tuple("gccAttribute", gccAttrProc),
         /* out of specification */
         std::make_tuple(
             "xcodemlAccessToAnonRecordExpr", accessToAnonRecordExprProc),
