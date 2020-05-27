@@ -287,7 +287,7 @@ DEFINE_DECLHANDLER(ClassTemplateSpecializationProc) {
   const auto classT = llvm::dyn_cast<XcodeMl::ClassType>(T.get());
   const auto nameSpelling = classT->name();
 
-  const auto head =
+   const auto head =
       makeTokenNode("template") + makeTokenNode("<") + makeTokenNode(">");
 
   if (isTrueProp(node, "is_this_declaration_a_definition", false)) {
@@ -295,9 +295,9 @@ DEFINE_DECLHANDLER(ClassTemplateSpecializationProc) {
         + emitClassDefinition(node, ClassDefinitionBuilder, src, *classT);
   }
 
-  /* forward declaration */
   const auto classKey = getClassKey(classT->classKind());
-  return head + makeTokenNode(classKey) + nameSpelling;
+    /* forward declaration */
+  return head + T->makeDeclaration(CXXCodeGen::makeVoidNode(), src.typeTable, src.nnsTable);
 }
 
 void
@@ -454,19 +454,18 @@ DEFINE_DECLHANDLER(FunctionTemplateProc)
   }
   const auto paramNodes =
       findNodes(node, "clangDecl[@class='TemplateTemplateParm' or @class='TemplateTypeParm' or @class ='NonTypeTemplateParm']", src.ctxt);
-  const auto bodyNodes = findNodes(node,
+  const auto bodyNode = findFirst(node,
 			      "clangDecl[@class='CXXMethod' or @class ='CXXConstructor' or @class='Function']"
 			      , src.ctxt);
   std::vector<CXXCodeGen::StringTreeRef> params;
   for (auto &&paramNode : paramNodes) {
     params.push_back(w.walk(paramNode, src));
   }
-  std::vector<CXXCodeGen::StringTreeRef> bodies;
-  for(auto && bodyNode : bodyNodes){
-    bodies.push_back(w.walk(bodyNode, src));    
+  auto body = CXXCodeGen::makeVoidNode();
+  if(bodyNode){
+    body = w.walk(bodyNode, src);
   }
-  return makeTokenNode("template") + makeTokenNode("<") + join(",", params)
-    + makeTokenNode(">") + join("\n", bodies );
+  return wrapWithLangLink(makeTokenNode("template") + makeTokenNode("<") + join(",", params)+ makeTokenNode(">"), node, src) ;
 
 }
 
