@@ -182,6 +182,10 @@ XMLRecursiveASTVisitor::VisitStmt(Stmt *S) {
       TraverseDeclarationNameInfo(DNI);
   }
 
+  if (auto CSME = dyn_cast<CXXDependentScopeMemberExpr>(S)){
+      newBoolProp("is_arrow", CSME->isArrow());
+  }
+
   if (auto SOPE = dyn_cast<SizeOfPackExpr>(S)){
       auto ND = SOPE->getPack();
       if(auto typePack = dyn_cast<TypeDecl>(ND)){
