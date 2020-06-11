@@ -85,7 +85,7 @@ public:                                                         \
   DISPATCHER(NestedNameSpecifier, clang::NestedNameSpecifier *);
     //  DISPATCHER(NestedNameSpecifierLoc, clang::NestedNameSpecifierLoc);
     //DISPATCHER(DeclarationNameInfo, clang::DeclarationNameInfo);
-  DISPATCHER(TemplateName, clang::TemplateName);
+    DISPATCHER(TemplateName, clang::TemplateName);
     //DISPATCHER(TemplateArgument, const clang::TemplateArgument &);
     //DISPATCHER(TemplateArgumentLoc, const clang::TemplateArgumentLoc &);
     // DISPATCHER(Type, clang::QualType);
@@ -101,6 +101,7 @@ public:                                                         \
       curNode = save;
       return true;
   }
+
     bool VisitTemplateArgumentLoc(clang::TemplateArgumentLoc &AL)
     {
         return true;
@@ -374,9 +375,7 @@ public:                                                         \
   bool TraverseNestedNameSpecifierLoc(clang::NestedNameSpecifierLoc);
 //  DISPATCHER(DeclarationNameInfo, clang::DeclarationNameInfo);
   bool VisitDeclarationNameInfo(clang::DeclarationNameInfo);
-
-//  DISPATCHER(TemplateName, clang::TemplateName);
-  DEF_VISITOR(TemplateName, clang::TemplateName);
+  bool PostVisitTemplateName(clang::TemplateName);
 //  DISPATCHER(TemplateArgument, const clang::TemplateArgument &);
   DEF_VISITOR(TemplateArgument, const clang::TemplateArgument &);
 //  DISPATCHER(TemplateArgumentLoc, const clang::TemplateArgumentLoc &);

@@ -393,14 +393,26 @@ XMLRecursiveASTVisitor::PreVisitDecl(Decl *D) {
     newProp("xcodemlType", typetableinfo.getTypeName(T).c_str());
 
   }
+  if(auto TPD = dyn_cast<TemplateTypeParmDecl>(D)){
+      const auto depth = TPD->getDepth();
+      const auto index = TPD->getIndex();
+      newProp("depth", depth);
+      newProp("index", index);
+  }
   if(auto TTPD = dyn_cast<TemplateTemplateParmDecl>(D)){
       const auto depth = TTPD->getDepth();
       const auto index = TTPD->getIndex();
       std::string name = "__xcodeml_template_template_" + std::to_string(depth)
           + "_" + std::to_string(index);
       newProp("argname", name.c_str());
+      newProp("depth", depth);
+      newProp("index", index);
   }
   if (auto NTTPD = dyn_cast<NonTypeTemplateParmDecl>(D)) {
+      const auto depth = NTTPD->getDepth();
+      const auto index = NTTPD->getIndex();
+      newProp("depth", depth);
+      newProp("index", index);
       newProp("pack", std::to_string(NTTPD->isParameterPack()).c_str());
   }
   if (auto TND = dyn_cast<TypedefNameDecl>(D)) {
@@ -531,6 +543,29 @@ SpecifierKindToString(clang::NestedNameSpecifier::SpecifierKind kind) {
 }
 
 } // namespace
+
+bool XMLRecursiveASTVisitor::PostVisitTemplateName(clang::TemplateName TN)
+{
+    newChild("xcodemlTemplateName");
+    if(TN.getKind() != 0){
+        return true;
+    }
+    newProp("nameKind", std::to_string(TN.getKind()).c_str());
+    auto TD= TN.getAsTemplateDecl();
+    auto TTPD = llvm::dyn_cast<TemplateTemplateParmDecl>(TD);
+    std::string name;
+    if(TTPD){
+        const auto depth = TTPD->getDepth();
+        const auto index = TTPD->getIndex();
+         name = "__xcodeml_template_template_"
+            + std::to_string(depth)
+            + "_" + std::to_string(index);
+    }else{
+        name = TD->getDeclName().getAsString();
+    }
+    addChild("name", name.c_str());
+    return true;
+}
 
 bool
 XMLRecursiveASTVisitor::TraverseNestedNameSpecifierLoc(NestedNameSpecifierLoc N) {
@@ -797,14 +832,14 @@ XMLRecursiveASTVisitor::NameForTemplateName(clang::TemplateName TN) {
 
 const char *
 XMLRecursiveASTVisitor::NameForTemplateArgument(const clang::TemplateArgument &TA) {
-  (void)TA;
-  return "X";
+  const char *names[] ={"Null", "Type", "Declaration", "Nullptr", "Integral",
+                        "Template", "TemplateExpansion", "Expression", "Pack"};
+  return names[TA.getKind()];
 }
 
 const char *
 XMLRecursiveASTVisitor::NameForTemplateArgumentLoc(const clang::TemplateArgumentLoc &TL) {
-  (void)TL;
-  return "X";
+  return NameForTemplateArgument(TL.getArgument());
 }
 
 const char *
